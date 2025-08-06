@@ -1,0 +1,57 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[left=1cm,right=1cm,top=2cm,bottom=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+
+\begin{document}
+
+\begin{center}
+    \textbf{OFFICE OF THE EXECUTIVE ENGINEER PWD ELECTRIC DIVISION, UDAIPUR} \\
+    \vspace{0.5cm}
+    \textbf{COMPARATIVE STATEMENT OF TENDERS} \\
+    \vspace{0.3cm}
+    \textbf{Name of Work:} {WORK_NAME} \\
+    \textbf{NIT No.:} {NIT_NUMBER} \quad \textbf{Date:} {NIT_DATE} \quad \textbf{ITEM:} {ITEM_NO}
+\end{center}
+
+\begin{center}
+    \begin{tabular}{llrr}
+        \toprule
+        \textbf{NIT No.:} & {NIT_NUMBER} & \textbf{Estimated amount for item in NIT Rs.:} & {ESTIMATED_COST} \\
+        \textbf{Amount of tender recommended for Rs.:} & {L1_BID_AMOUNT} & \textbf{Earnest Money @2\% Rs.:} & {EARNEST_MONEY} \\
+        \textbf{Estimated amount of item not included in the tender Rs.:} & Nil & \textbf{Time for Completion Months:} & {TIME_COMPLETION} \\
+        \textbf{Contingencies and other provision included in the estimate Rs.:} & As per rules & \textbf{Date of calling NIT:} & {NIT_DATE} \\
+        \textbf{Cost of work as per recommended tender Rs.:} & {L1_BID_AMOUNT} & \textbf{Date of Receipt of Tender:} & {RECEIPT_DATE} \\
+        \textbf{Percentage of excess / saving over the sanctioned estimate \%:} & {L1_PERCENTAGE} & & \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\begin{center}
+    \begin{tabular}{|c|l|c|c|c|}
+        \hline
+        \textbf{S.No} & \textbf{Bidder Name} & \textbf{Estimated Cost Rs.} & \textbf{Quoted Percentage} & \textbf{Quoted Amount Rs.} \\
+        \hline
+        {BIDDER_TABLE_ROWS}
+        \hline
+    \end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\begin{center}
+    \textbf{Lowest: {L1_BIDDER_NAME} \quad {L1_PERCENTAGE} \quad Rs. {L1_BID_AMOUNT} ({L1_BID_AMOUNT_WORDS})}
+\end{center}
+
+\begin{flushleft}
+    \textbf{Comparative Summary} \\
+    The tender of the lowest bidder {L1_BIDDER_NAME} @ {L1_PERCENTAGE} amounting to Rs. {L1_BID_AMOUNT}/- In words {L1_BID_AMOUNT_WORDS}. \\
+    \vspace{0.2cm}
+    AR \quad DA \quad TA \quad EE \\
+    \vspace{0.5cm}
+    Auditor \quad Divisional Accountant
+\end{flushleft}
+
+\end{document}

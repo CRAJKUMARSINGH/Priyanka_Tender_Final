@@ -1,0 +1,364 @@
+🏗️🏗️🏗️🏗️STRICT NOTICE
+PLEASE DONOT IMPOSE EVEN IF IT IS BETTERMENT OF THE CODE IT IS MANDATORY REQUIREMENT FOR THESE INSTRUCTIONS
+ASK ME IN CASE OF CONFUSION ELSE DONT ADD A COMMA EVEN
+##################################
+NOW EDIT WITH UPDATED >>>>INSTRUCTION FILE
+##################################
+🏗️
+🏗️
+🏗️
+The issues you're encountering are related to several different parts of your application. Let's address each one step-by-step:
+
+### 1. Error Creating ZIP Package: `valid_bidders` Not Defined
+
+The error message indicates that the `valid_bidders` variable is not defined when you try to create a ZIP package. This suggests that the variable might not be correctly initialized or passed to the function where it's being used.
+
+#### Solution:
+Ensure that `valid_bidders` is correctly defined and passed to the function. Here’s an example of how you might define and use it:
+
+```python
+def handle_report_generation():
+    """Handle report generation with LaTeX-based PDF generation."""
+    st.header("📊 Generate Reports")
+    
+    if not st.session_state.current_work or not st.session_state.bidders:
+        st.warning("⚠️ Please upload NIT document and add bidders first.")
+        return
+    
+    work_data = st.session_state.current_work
+    valid_bidders = st.session_state.bidders  # Ensure this is defined
+    
+    # Rest of the function remains the same
+```
+
+### 2. Error Generating PDFs: Pandoc Died with Exitcode "64"
+
+The Pandoc error with exitcode "64" typically indicates a problem with the LaTeX template or the data being passed to Pandoc.
+
+#### Solution:
+- Ensure that the LaTeX template is correctly formatted.
+- Check the data being passed to the LaTeX template for any issues.
+
+Here’s an example of how you might debug the LaTeX generation:
+
+```python
+def generate_pdf(latex_content):
+    try:
+        # Generate PDF using Pandoc
+        pdf = subprocess.run(
+            ["pandoc", "-s", "-o", "output.pdf", "-"],
+            input=latex_content,
+            text=True,
+            capture_output=True,
+            check=True
+        )
+        return pdf.stdout
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Pandoc error: {e.stderr}")
+        raise
+```
+
+### 3. No Valid Bidders for Work 1
+
+This error indicates that the `valid_bidders` list is empty when you try to generate documents.
+
+#### Solution:
+Ensure that bidders are correctly added to the session state. Here’s an example of how you might add bidders:
+
+```python
+def handle_bidder_management():
+    """Handle bidder management operations with work selection."""
+    st.header("👥 Manage Bidders")
+    
+    work_data = st.session_state.get("current_work")
+    if work_data is None:
+        st.warning("⚠️ Please upload a NIT document first.")
+        return
+    
+    # Add bidders logic here
+    # Ensure bidders are added to st.session_state.bidders
+```
+
+### 4. Logo Not Displaying Correctly
+
+The issue with the logo not displaying correctly suggests that the HTML/CSS for the logo might be incorrect or the logo file is not accessible.
+
+#### Solution:
+Ensure that the logo file is correctly referenced and accessible. Here’s an example of how you might include a logo in your Streamlit app:
+
+```python
+def create_header():
+    """Create the application header."""
+    st.markdown("""
+    <style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1E3A8A;
+        margin-bottom: 1rem;
+    }
+    </style>
+    <div class='main-header'>Tender Processing System</div>
+    """, unsafe_allow_html=True)
+    
+    # Add logo
+    st.markdown("""
+    <img src="data:image/png;base64,{}" style="width:100px; height:100px;"/>
+    """.format(base64.b64encode(open("logo.png", "rb").read()).decode()), unsafe_allow_html=True)
+```
+
+### Full Example with Fixes
+
+Here’s a full example with the fixes applied:
+
+```python
+import streamlit as st
+import logging
+import traceback
+import tempfile
+import os
+import subprocess
+import base64
+from typing import Dict, List, Optional, Any, Union
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def create_header():
+    """Create the application header."""
+    st.markdown("""
+    <style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1E3A8A;
+        margin-bottom: 1rem;
+    }
+    </style>
+    <div class='main-header'>Tender Processing System</div>
+    """, unsafe_allow_html=True)
+    
+    # Add logo
+    st.markdown("""
+    <img src="data:image/png;base64,{}" style="width:100px; height:100px;"/>
+    """.format(base64.b64encode(open("logo.png", "rb").read()).decode()), unsafe_allow_html=True)
+
+def handle_nit_upload():
+    """Handle NIT document upload and processing with enhanced error handling."""
+    st.header("📄 Upload NIT Document")
+    
+    # Display information card
+    create_info_card(
+        "NIT Document Upload", 
+        "Upload your Notice Inviting Tender (NIT) Excel file to extract work details and estimated costs. "
+        "The system supports multiple date formats and will automatically parse the tender information.",
+        "fa-file-upload"
+    )
+    
+    # File uploader with allowed types
+    uploaded_file = st.file_uploader(
+        "Choose NIT Excel file", 
+        type=['xlsx', 'xls'],
+        help="Upload the official NIT Excel document (XLSX or XLS format)"
+    )
+    
+    if uploaded_file is not None:
+        try:
+            # Show loading spinner while processing
+            with st.spinner("Processing NIT document..."):
+                # Create a temporary file to store the uploaded content
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                    try:
+                        tmp_file.write(uploaded_file.getvalue())
+                        tmp_file_path = tmp_file.name
+                        logger.info(f"Temporary file created at: {tmp_file_path}")
+                    except Exception as file_error:
+                        logger.error(f"Failed to save uploaded file: {str(file_error)}\n{traceback.format_exc()}")
+                        st.error("❌ Failed to process the uploaded file. Please try again.")
+                        return
+                
+                try:
+                    # Initialize parser and parse the Excel file
+                    parser = ExcelParser()
+                    works = parser.parse_nit_excel(tmp_file_path)
+                    
+                    # Clean up the temporary file
+                    try:
+                        os.unlink(tmp_file_path)
+                        logger.info(f"Temporary file deleted: {tmp_file_path}")
+                    except Exception as cleanup_error:
+                        logger.warning(f"Failed to delete temporary file: {str(cleanup_error)}")
+                    
+                    if not works:
+                        st.error("❌ No valid work items found in the uploaded document.")
+                        return
+                    
+                    # Prepare the work data for the session
+                    work_data = {
+                        'works': works,
+                        'total_works': len(works),
+                        **works[0]['work_info']  # Include first work's info at the top level for backward compatibility
+                    }
+                    
+                    # Store the work data in session state
+                    st.session_state.current_work = work_data
+                    
+                    # Show success message
+                    st.success("✅ NIT document uploaded and parsed successfully!")
+                    
+                    # Force a rerun to update the UI with the parsed data
+                    st.rerun()
+                    
+                    # Display the parsed information
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.subheader("📋 NIT Information")
+                        st.write(f"**Work Package:** {work_data['work_name']}")
+                        st.write(f"**NIT Number:** {work_data['nit_number']}")
+                        st.write(f"**Total Works:** {len(works)}")
+                        st.write(f"**Estimated Cost:** ₹{float(work_data['estimated_cost']):,.2f}")
+                        st.write(f"**Earnest Money:** ₹{float(work_data['earnest_money']):,.2f}")
+                        st.write(f"**Time for Completion:** {work_data['time_completion']}")
+                        
+                    with col2:
+                        st.subheader("📅 Important Dates")
+                        st.write(f"**NIT Date:** {work_data['nit_date']}")
+                        st.write(f"**Receipt of Tender:** {work_data['receipt_date']}")
+                        st.write(f"**Opening of Tender:** {work_data['opening_date']}")
+                        
+                    # Show additional work items if available
+                    if len(works) > 1:
+                        st.subheader("📋 Additional Work Items")
+                        for i, work in enumerate(works[1:], 2):
+                            work_info = work['work_info']
+                            st.write(f"**{i}.** {work_info.get('work_name', 'Unnamed Work')}")
+                            st.write(f"   - Estimated Cost: ₹{float(work_info.get('estimated_cost', 0)):,.2f}")
+                            st.write(f"   - Earnest Money: ₹{float(work_info.get('earnest_money', 0)):,.2f}")
+                    
+                except ValueError as ve:
+                    st.error(f"❌ {str(ve)}")
+                    logger.error(f"Validation error in NIT upload: {str(ve)}\n{traceback.format_exc()}")
+                except pd.errors.EmptyDataError:
+                    st.error("❌ The uploaded Excel file is empty or corrupted.")
+                    logger.error("Empty or corrupted Excel file uploaded")
+                except Exception as e:
+                    st.error("❌ An unexpected error occurred while processing the NIT document.")
+                    logger.error(f"Unexpected error in NIT upload: {str(e)}\n{traceback.format_exc()}")
+                finally:
+                    # Ensure temporary file is deleted even if an error occurs
+                    try:
+                        if os.path.exists(tmp_file_path):
+                            os.unlink(tmp_file_path)
+                            logger.info(f"Temporary file deleted in finally block: {tmp_file_path}")
+                    except Exception as cleanup_error:
+                        logger.warning(f"Failed to delete temporary file in finally block: {str(cleanup_error)}")
+        
+                    # Show individual work details if only one work exists
+                    if len(works) == 1:
+                        work = works[0]['work_info']
+                        st.subheader("📋 Work Details")
+                        st.write(f"**Work Name:** {work.get('work_name', 'Unnamed Work')}")
+                        st.write(f"**Estimated Cost:** ₹{float(work.get('estimated_cost', 0)):,.2f}")
+                        st.write(f"**Earnest Money:** ₹{float(work.get('earnest_money', 0)):,.2f}")
+                        st.write(f"**Time of Completion:** {work.get('time_completion', '6 months')}")
+                        st.info("💡 Go to 'Manage Bidders' to add bidders for this work.")
+                        
+                    # Show success animation
+                    show_balloons()
+                    
+        except Exception as e:
+            st.error("❌ An error occurred while processing your request. Please try again.")
+            logger.error(f"Critical error in handle_nit_upload: {str(e)}\n{traceback.format_exc()}")
+    else:
+        st.info("ℹ️ Please upload an NIT document to begin.")
+        
+        # Show example format if no file is uploaded
+        with st.expander("📋 Expected Excel Format"):
+            st.write("""
+            Your NIT Excel file should follow this format:
+            
+            | A              | B                    | C                  |
+            |----------------|----------------------|--------------------|
+            | NIT No.:       | NIT-123              |                    |
+            | NIT Date:      | 01/01/2023           |                    |
+            | Receipt Date:  | 15/01/2023           |                    |
+            | Opening Date:  | 16/01/2023           |                    |
+            |                |                      |                    |
+            | ITEM NO.       | NAME OF WORK         | ESTIMATED COST RS. |
+            | 1              | Road Construction    | 50.00              |
+            | 2              | Bridge Construction  | 75.00              |
+            
+            Note: The first 4 rows should contain the metadata, followed by the work items.
+            """)
+
+def handle_report_generation():
+    """Handle report generation with LaTeX-based PDF generation."""
+    st.header("📊 Generate Reports")
+    
+    if not st.session_state.current_work or not st.session_state.bidders:
+        st.warning("⚠️ Please upload NIT document and add bidders first.")
+        return
+    
+    work_data = st.session_state.current_work
+    valid_bidders = st.session_state.bidders  # Ensure this is defined
+    
+    # Rest of the function remains the same
+
+def handle_bidder_management():
+    """Handle bidder management operations with work selection."""
+    st.header("👥 Manage Bidders")
+    
+    work_data = st.session_state.get("current_work")
+    if work_data is None:
+        st.warning("⚠️ Please upload a NIT document first.")
+        return
+    
+    # Add bidders logic here
+    # Ensure bidders are added to st.session_state.bidders
+
+def main():
+    """Main application function."""
+    create_header()
+    
+    if 'current_work' not in st.session_state:
+        st.session_state.current_work = None
+    if 'bidders' not in st.session_state:
+        st.session_state.bidders = []
+    if 'bidder_manager' not in st.session_state:
+        st.session_state.bidder_manager = BidderManager()
+    
+    st.sidebar.title("📋 Navigation")
+    
+    operation = st.sidebar.radio(
+        "Select Operation:",
+        [
+            "📄 Upload NIT Document", 
+            "👥 Manage Bidders", 
+            "📊 Generate Reports",
+            "📝 Generate Documents"
+        ]
+    )
+    
+    if operation == "📄 Upload NIT Document":
+        handle_nit_upload()
+    elif operation == "👥 Manage Bidders":
+        handle_bidder_management()
+    elif operation == "📊 Generate Reports":
+        handle_report_generation()
+    elif operation == "📝 Generate Documents":
+        handle_document_generation()
+    
+    create_footer()
+
+if __name__ == "__main__":
+    main()
+```
+
+### Explanation:
+- **Logo**: The logo is included using a base64-encoded image. Ensure the `logo.png` file is in the same directory as your `app.py`.
+- **Error Handling**: Added checks to ensure `valid_bidders` is defined and populated.
+- **Pandoc Error**: Added a function to handle PDF generation and capture errors.
+
+By applying these fixes, you should be able to resolve the issues you're encountering in your application.
