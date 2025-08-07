@@ -1,17 +1,20 @@
 import json
 import os
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
+from pathlib import Path
 from date_utils import DateUtils
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class BidderManager:
     """Enhanced bidder management with persistent storage and improved date handling."""
     
     def __init__(self, database_file: str = "bidder_database.json"):
-        self.database_file = database_file
+        """Initialize BidderManager with database file path."""
+        self.database_file = str(Path(database_file).resolve())
         self.date_utils = DateUtils()
         self.bidders_db = self._load_database()
     
@@ -21,10 +24,10 @@ class BidderManager:
             if os.path.exists(self.database_file):
                 with open(self.database_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    logging.info(f"Loaded {len(data.get('bidders', []))} bidders from database")
+                    logger.info(f"Loaded {len(data.get('bidders', []))} bidders from database")
                     return data
         except Exception as e:
-            logging.error(f"Error loading database: {e}")
+            logger.error(f"Error loading database: {e}")
         
         # Return default structure if file doesn't exist or error occurred
         return {
@@ -38,6 +41,9 @@ class BidderManager:
     def _save_database(self) -> bool:
         """Save bidder database to JSON file."""
         try:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(self.database_file), exist_ok=True)
+            
             # Update statistics
             self.bidders_db['statistics']['total_bidders'] = len(self.bidders_db['bidders'])
             self.bidders_db['statistics']['last_updated'] = self.date_utils.get_current_date()
@@ -45,32 +51,79 @@ class BidderManager:
             with open(self.database_file, 'w', encoding='utf-8') as f:
                 json.dump(self.bidders_db, f, indent=2, ensure_ascii=False)
             
-            logging.info(f"Saved database with {len(self.bidders_db['bidders'])} bidders")
+            logger.info(f"Saved database with {len(self.bidders_db['bidders'])} bidders")
             return True
             
         except Exception as e:
-            logging.error(f"Error saving database: {e}")
+            logger.error(f"Error saving database: {e}")
             return False
-#class BidderManager:
-    def add_bidder(self, name, bid_amount, percentage, address, earnest_money, work_item, work_name, estimated_cost):
+            
+    def add_bidder(self, name: str, bid_amount: float, percentage: float, address: str, 
+                  earnest_money: float, work_item: str, work_name: str, 
+                  estimated_cost: float) -> Tuple[bool, str]:
+        """
+        Add a new bidder to the system.
+        
+        Args:
+            name: Bidder's name/company
+            bid_amount: Calculated bid amount
+            percentage: Percentage above/below estimate
+            address: Bidder's address
+            earnest_money: Earnest money amount
+            work_item: Work item number
+            work_name: Name of the work
+            estimated_cost: Estimated cost of the work
+            
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
         try:
+            # Input validation
+            if not all([name, address, work_item, work_name]):
+                return False, "Missing required fields"
+                
+            try:
+                bid_amount = float(bid_amount)
+                percentage = float(percentage)
+                earnest_money = float(earnest_money)
+                estimated_cost = float(estimated_cost)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Invalid numeric input: {e}")
+                return False, f"Invalid numeric input: {e}"
+            
+            # Create bidder record
             bidder = {
-                'name': name,
-                'bid_amount': float(bid_amount),
-                'percentage': float(percentage),
-                'address': address,
-                'earnest_money': float(earnest_money),
+                'id': self._generate_bidder_id(),
+                'name': name.strip(),
+                'bid_amount': bid_amount,
+                'percentage': percentage,
+                'address': address.strip(),
+                'earnest_money': earnest_money,
                 'work_item': work_item,
                 'work_name': work_name,
-                'estimated_cost': float(estimated_cost)
+                'estimated_cost': estimated_cost,
+                'date_added': self.date_utils.get_current_date(),
+                'last_updated': self.date_utils.get_current_date()
             }
-            if 'valid_bidders' not in st.session_state:
-                st.session_state.valid_bidders = []
-            st.session_state.valid_bidders.append(bidder)
-            st.session_state.latex_gen.logger.info(f"Added bidder: {bidder}")
-        except ValueError as e:
-            st.error(f"Invalid input for bidder: {str(e)}")
-            st.session_state.latex_gen.logger.error(f"Error adding bidder: {str(e)}")
+            
+            # Add to database
+            self.bidders_db['bidders'].append(bidder)
+            
+            # Save to file
+            if self._save_database():
+                logger.info(f"Added bidder: {name}")
+                return True, f"Successfully added bidder: {name}"
+            else:
+                return False, "Failed to save bidder to database"
+                
+        except Exception as e:
+            error_msg = f"Error adding bidder: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return False, error_msg
+            
+    def _generate_bidder_id(self) -> str:
+        """Generate a unique ID for a new bidder."""
+        return f"BID{len(self.bidders_db['bidders']) + 1:06d}"
     
     def update_bidder(self, bidder_id: str, updated_data: Dict[str, Any]) -> bool:
         """
