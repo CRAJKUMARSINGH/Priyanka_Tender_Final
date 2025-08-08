@@ -2153,7 +2153,23 @@ def handle_document_generation_latex():
     if st.button(f"🚀 Generate & Download All Documents as ZIP"):
         try:
             with st.spinner("Generating documents and creating ZIP package..."):
-                documents = latex_gen.generate_bulk_pdfs(work_data, valid_bidders)
+                try:
+                    documents = latex_gen.generate_bulk_pdfs(work_data, valid_bidders)
+                except Exception as gen_err:
+                    logging.error(f"LaTeX PDF generation failed: {gen_err}. Falling back to ReportLab generator.")
+                    documents = {}
+                if not documents:
+                    try:
+                        pdf_gen_fallback = PDFGenerator()
+                        documents = {
+                            f'Comparative_Statement_Work_{work_id}.pdf': pdf_gen_fallback.generate_comparative_statement_pdf(work_data, valid_bidders),
+                            f'Letter_of_Acceptance_Work_{work_id}.pdf': pdf_gen_fallback.generate_letter_of_acceptance_pdf(work_data, valid_bidders),
+                            f'Work_Order_Work_{work_id}.pdf': pdf_gen_fallback.generate_work_order_pdf(work_data, valid_bidders),
+                            f'Scrutiny_Sheet_Work_{work_id}.pdf': pdf_gen_fallback.generate_scrutiny_sheet_pdf(work_data, valid_bidders),
+                        }
+                    except Exception as fb_err:
+                        logging.error(f"Fallback PDF generation failed: {fb_err}")
+                        documents = {}
                 if documents:
                     zip_gen = ZipGenerator()
                     zip_buffer = zip_gen.create_zip(documents)
