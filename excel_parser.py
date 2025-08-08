@@ -2,14 +2,19 @@ import pandas as pd
 import logging
 import traceback
 from datetime import datetime, timedelta
+import re
+from typing import Dict, List, Any, Optional, Union
+import os
+import json
+from dateutil.parser import parse
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('app.log')
+        logging.FileHandler('excel_parser.log'),
+        logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
