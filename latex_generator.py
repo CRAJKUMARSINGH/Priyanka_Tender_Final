@@ -1,180 +1,154 @@
 """
-LaTeX Generator for Tender Processing System
-Handles LaTeX template processing and PDF compilation
+LaTeX Document Generator for Tender Processing System
+Enhanced with professional templates integration
 """
 
 import os
+import re
 import subprocess
 import tempfile
-import shutil
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Any, List, Optional
 import logging
-from datetime import datetime
-from date_utils import DateUtils
+from typing import Dict, List, Optional, Tuple
 
 class LaTeXGenerator:
-    """Generates PDF documents using LaTeX templates."""
+    """Enhanced LaTeX document generator with template integration."""
     
     def __init__(self):
-        self.date_utils = DateUtils()
-        self.template_dir = Path("latex_templates")
+        self.templates_dir = Path("latex_templates")
+        self.output_dir = Path("generated_documents")
+        self.output_dir.mkdir(exist_ok=True)
         
-        # Ensure template directory exists
-        self.template_dir.mkdir(exist_ok=True)
+        # Ensure templates directory exists
+        self.templates_dir.mkdir(exist_ok=True)
         
-        # Check if LaTeX is available
-        self._check_latex_availability()
-    
-    def _check_latex_availability(self):
-        """Check if LaTeX (pdflatex) is available on the system."""
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+        
+    def number_to_words(self, amount: float) -> str:
+        """Convert number to words for Indian currency format."""
         try:
-            result = subprocess.run(['pdflatex', '--version'], 
-                                  capture_output=True, text=True, timeout=10)
-            if result.returncode == 0:
-                logging.info("LaTeX (pdflatex) is available")
+            # Basic implementation for common amounts
+            if amount == 0:
+                return "Zero Rupees Only"
+            
+            # Convert to integer for simplicity
+            rupees = int(amount)
+            
+            # Basic conversion (can be enhanced)
+            ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
+            teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", 
+                    "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+            tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+            
+            if rupees < 10:
+                return f"{ones[rupees]} Rupees Only"
+            elif rupees < 20:
+                return f"{teens[rupees - 10]} Rupees Only"
+            elif rupees < 100:
+                return f"{tens[rupees // 10]} {ones[rupees % 10]} Rupees Only".strip()
+            elif rupees < 1000:
+                hundreds = rupees // 100
+                remainder = rupees % 100
+                result = f"{ones[hundreds]} Hundred"
+                if remainder > 0:
+                    if remainder < 10:
+                        result += f" {ones[remainder]}"
+                    elif remainder < 20:
+                        result += f" {teens[remainder - 10]}"
+                    else:
+                        result += f" {tens[remainder // 10]} {ones[remainder % 10]}".strip()
+                return f"{result} Rupees Only"
+            elif rupees < 100000:
+                thousands = rupees // 1000
+                remainder = rupees % 1000
+                result = f"{self._convert_hundreds(thousands)} Thousand"
+                if remainder > 0:
+                    result += f" {self._convert_hundreds(remainder)}"
+                return f"{result} Rupees Only"
+            elif rupees < 10000000:
+                lakhs = rupees // 100000
+                remainder = rupees % 100000
+                result = f"{self._convert_hundreds(lakhs)} Lakh"
+                if remainder > 0:
+                    if remainder >= 1000:
+                        result += f" {self._convert_hundreds(remainder // 1000)} Thousand"
+                        remainder = remainder % 1000
+                    if remainder > 0:
+                        result += f" {self._convert_hundreds(remainder)}"
+                return f"{result} Rupees Only"
             else:
-                logging.warning("LaTeX may not be properly installed")
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            logging.error("LaTeX (pdflatex) not found. Please install TeX Live or MiKTeX")
-    
-    def generate_document(self, doc_type: str, work: Dict[str, Any], 
-                         bidders: List[Dict[str, Any]]) -> tuple[Path, str]:
-        """Generate a LaTeX document of the specified type.
-        
-        Args:
-            doc_type: Type of document to generate (e.g., 'comparative_statement')
-            work: Dictionary containing work information
-            bidders: List of bidder dictionaries
-            
-        Returns:
-            tuple: (output_path, latex_content) where output_path is the path to the generated 
-                  LaTeX file and latex_content is the content as a string
-        """
-        try:
-            # Generate LaTeX content
-            latex_content = self._generate_latex_content(doc_type, work, bidders)
-            if not latex_content:
-                raise ValueError(f"Failed to generate LaTeX content for {doc_type}")
-            
-            # Create output directory if it doesn't exist
-            output_dir = Path("generated_docs")
-            output_dir.mkdir(exist_ok=True)
-            
-            # Create a timestamped filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{doc_type}_{timestamp}.tex"
-            output_path = output_dir / filename
-            
-            # Save the LaTeX content to a file
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(latex_content)
-                
-            logging.info(f"Successfully generated LaTeX document at {output_path}")
-            return output_path, latex_content
-            
+                crores = rupees // 10000000
+                remainder = rupees % 10000000
+                result = f"{self._convert_hundreds(crores)} Crore"
+                if remainder > 0:
+                    if remainder >= 100000:
+                        result += f" {self._convert_hundreds(remainder // 100000)} Lakh"
+                        remainder = remainder % 100000
+                    if remainder >= 1000:
+                        result += f" {self._convert_hundreds(remainder // 1000)} Thousand"
+                        remainder = remainder % 1000
+                    if remainder > 0:
+                        result += f" {self._convert_hundreds(remainder)}"
+                return f"{result} Rupees Only"
         except Exception as e:
-            logging.error(f"Error in generate_document for {doc_type}: {str(e)}")
-            raise
+            self.logger.error(f"Error converting number to words: {e}")
+            return f"Rupees {amount:.2f} Only"
     
-    def _generate_latex_content(self, doc_type: str, work: Dict[str, Any], 
-                               bidders: List[Dict[str, Any]]) -> Optional[str]:
-        """Generate LaTeX content by substituting variables in templates."""
+    def _convert_hundreds(self, num: int) -> str:
+        """Helper method to convert numbers less than 1000 to words."""
+        if num == 0:
+            return ""
         
-        template_file = self.template_dir / f"{doc_type}.tex"
+        ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
+        teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", 
+                "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+        tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
         
-        if not template_file.exists():
-            logging.error(f"Template file not found: {template_file}")
-            return None
+        result = ""
         
-        try:
-            with open(template_file, 'r', encoding='utf-8') as f:
-                template_content = f.read()
-            
-            # Prepare substitution variables
-            variables = self._prepare_template_variables(work, bidders)
-            
-            # Substitute variables in template
-            latex_content = self._substitute_variables(template_content, variables)
-            
-            return latex_content
-            
-        except Exception as e:
-            logging.error(f"Error processing template {template_file}: {e}")
-            return None
+        if num >= 100:
+            result += f"{ones[num // 100]} Hundred "
+            num %= 100
+        
+        if num >= 20:
+            result += f"{tens[num // 10]} "
+            num %= 10
+        elif num >= 10:
+            result += f"{teens[num - 10]} "
+            num = 0
+        
+        if num > 0:
+            result += f"{ones[num]} "
+        
+        return result.strip()
     
-    def _prepare_template_variables(self, work: Dict[str, Any], 
-                                   bidders: List[Dict[str, Any]]) -> Dict[str, str]:
-        """Prepare variables for template substitution."""
+    def generate_bidder_table_rows(self, bidders: List[Dict], estimated_cost: float) -> str:
+        """Generate bidder table rows for LaTeX."""
+        rows = []
+        for i, bidder in enumerate(bidders, 1):
+            name = bidder.get('name', 'Unknown')
+            percentage = bidder.get('percentage', 0)
+            bid_amount = bidder.get('bid_amount', 0)
+            
+            # Escape LaTeX special characters
+            name = self.escape_latex(name)
+            
+            row = f"{i} & {name} & {estimated_cost:,.2f} & {percentage:+.2f}\\% & {bid_amount:,.2f} \\\\"
+            rows.append(row)
         
-        # Sort bidders by bid amount to get L1
-        sorted_bidders = sorted(bidders, key=lambda x: x['bid_amount'])
-        l1_bidder = sorted_bidders[0] if sorted_bidders else None
-        
-        # Parse dates
-        original_date = work['work_info']['date']
-        parsed_date = self.date_utils.parse_date(original_date)
-        formatted_date = self.date_utils.format_display_date(parsed_date) if parsed_date else original_date
-        
-        # Calculate receipt date (assuming same as NIT date for now)
-        receipt_date = formatted_date
-        
-        # Basic work information
-        variables = {
-            'WORK_NAME': self._latex_escape(work['work_name']),
-            'NIT_NUMBER': self._latex_escape(work['nit_number']),
-            'NIT_DATE': self._latex_escape(formatted_date),
-            'RECEIPT_DATE': self._latex_escape(receipt_date),
-            'ESTIMATED_COST': f"{float(work['work_info']['estimated_cost']):,.0f}",
-            'EARNEST_MONEY': str(work['work_info']['earnest_money']),
-            'TIME_COMPLETION': self._latex_escape(work['work_info']['time_of_completion']),
-            'CURRENT_DATE': self._latex_escape(self.date_utils.get_current_date()),
-            'NUM_TENDERS': str(len(bidders))
-        }
-        
-        # L1 bidder information
-        if l1_bidder:
-            variables.update({
-                'L1_BIDDER_NAME': self._latex_escape(l1_bidder['name']),
-                'L1_BIDDER_CONTACT': self._latex_escape(l1_bidder.get('contact', '')),
-                'L1_BID_AMOUNT': f"{l1_bidder['bid_amount']:,.0f}",
-                'L1_PERCENTAGE': f"{l1_bidder['percentage']:+.2f}",
-                'L1_PERCENTAGE_ABS': f"{abs(l1_bidder['percentage']):.2f}"
-            })
-        
-        # Generate bidder table rows for comparative statement
-        bidder_rows = []
-        for i, bidder in enumerate(sorted_bidders):
-            row = f"{i+1} & {self._latex_escape(bidder['name'])} & {float(work['work_info']['estimated_cost']):,.0f} & {bidder['percentage']:+.2f}\\% & {bidder['bid_amount']:,.0f} \\\\"
-            bidder_rows.append(row)
-        
-        variables['BIDDER_TABLE_ROWS'] = '\n        '.join(bidder_rows)
-        
-        return variables
+        return "\n        ".join(rows)
     
-    def _substitute_variables(self, template_content: str, variables: Dict[str, str]) -> str:
-        """Substitute variables in the template content."""
-        
-        content = template_content
-        
-        for var_name, var_value in variables.items():
-            placeholder = f"{{{var_name}}}"
-            content = content.replace(placeholder, str(var_value))
-        
-        return content
-    
-    def _latex_escape(self, text: str) -> str:
-        """Escape special LaTeX characters in text."""
-        if not isinstance(text, str):
-            text = str(text)
-        
-        # Common LaTeX special characters
-        escape_map = {
+    def escape_latex(self, text: str) -> str:
+        """Escape special LaTeX characters."""
+        # Basic LaTeX character escaping
+        replacements = {
             '&': '\\&',
             '%': '\\%',
             '$': '\\$',
             '#': '\\#',
-            '^': '\\textasciicircum{}',
+            '^': '\\^{}',
             '_': '\\_',
             '{': '\\{',
             '}': '\\}',
@@ -182,54 +156,216 @@ class LaTeXGenerator:
             '\\': '\\textbackslash{}'
         }
         
-        for char, escaped in escape_map.items():
-            text = text.replace(char, escaped)
+        for char, replacement in replacements.items():
+            text = text.replace(char, replacement)
         
         return text
     
-    def _compile_latex_to_pdf(self, latex_content: str) -> Optional[bytes]:
-        """Compile LaTeX content to PDF using pdflatex."""
+    def prepare_template_data(self, work_data: Dict, bidders: List[Dict]) -> Dict[str, str]:
+        """Prepare data dictionary for template substitution."""
+        if not work_data or not bidders:
+            raise ValueError("Work data and bidders information required")
         
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+        # Sort bidders by bid amount to find L1
+        sorted_bidders = sorted(bidders, key=lambda x: x.get('bid_amount', float('inf')))
+        l1_bidder = sorted_bidders[0]
+        
+        # Generate dates
+        current_date = datetime.now().strftime("%d-%m-%Y")
+        receipt_date = work_data.get('work_info', {}).get('date', current_date)
+        validity_date = (datetime.now() + timedelta(days=20)).strftime("%d-%m-%Y")
+        start_date = (datetime.now() + timedelta(days=7)).strftime("%d-%m-%Y")
+        completion_days = int(work_data.get('work_info', {}).get('time_of_completion', '90').split()[0])
+        completion_date = (datetime.now() + timedelta(days=completion_days + 7)).strftime("%d-%m-%Y")
+        
+        # Prepare template data
+        template_data = {
+            'WORK_NAME': self.escape_latex(work_data.get('work_name', 'Unknown Work')),
+            'NIT_NUMBER': self.escape_latex(work_data.get('nit_number', 'Unknown NIT')),
+            'NIT_DATE': receipt_date,
+            'ITEM_NO': '1',
+            'ESTIMATED_COST': f"{work_data.get('work_info', {}).get('estimated_cost', 0):,.2f}",
+            'EARNEST_MONEY': f"{work_data.get('work_info', {}).get('earnest_money', 0):,.2f}",
+            'TIME_COMPLETION': work_data.get('work_info', {}).get('time_of_completion', '90 days'),
+            'RECEIPT_DATE': receipt_date,
+            'L1_BIDDER_NAME': self.escape_latex(l1_bidder.get('name', 'Unknown')),
+            'L1_BIDDER_ADDRESS': self.escape_latex(l1_bidder.get('address', 'Unknown Address')),
+            'L1_PERCENTAGE': f"{l1_bidder.get('percentage', 0):+.2f}\\%",
+            'L1_BID_AMOUNT': f"{l1_bidder.get('bid_amount', 0):,.2f}",
+            'L1_BID_AMOUNT_WORDS': self.number_to_words(l1_bidder.get('bid_amount', 0)),
+            'BIDDER_TABLE_ROWS': self.generate_bidder_table_rows(bidders, work_data.get('work_info', {}).get('estimated_cost', 0)),
+            'NUM_TENDERS_SOLD': str(len(bidders) + 2),
+            'NUM_TENDERS_RECEIVED': str(len(bidders)),
+            'VALIDITY_DATE': validity_date,
+            'CURRENT_DATE': current_date,
+            'AGREEMENT_NO': f"AGR/{work_data.get('nit_number', 'UNKNOWN')}/{datetime.now().year}",
+            'START_DATE': start_date,
+            'COMPLETION_DATE': completion_date
+        }
+        
+        return template_data
+    
+    def load_template(self, template_name: str) -> str:
+        """Load LaTeX template from file."""
+        template_path = self.templates_dir / f"{template_name}.tex"
+        
+        if not template_path.exists():
+            raise FileNotFoundError(f"Template not found: {template_path}")
+        
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            self.logger.error(f"Error loading template {template_name}: {e}")
+            raise
+    
+    def substitute_template(self, template_content: str, data: Dict[str, str]) -> str:
+        """Substitute placeholders in template with actual data."""
+        result = template_content
+        
+        for placeholder, value in data.items():
+            pattern = f"{{{placeholder}}}"
+            result = result.replace(pattern, str(value))
+        
+        return result
+    
+    def generate_document(self, template_name: str, work_data: Dict, bidders: List[Dict], output_filename: Optional[str] = None) -> Tuple[str, str]:
+        """Generate a complete LaTeX document from template."""
+        try:
+            # Load template
+            template_content = self.load_template(template_name)
             
-            # Write LaTeX content to file
-            tex_file = temp_path / "document.tex"
-            with open(tex_file, 'w', encoding='utf-8') as f:
-                f.write(latex_content)
+            # Prepare data
+            template_data = self.prepare_template_data(work_data, bidders)
             
-            try:
-                # Run pdflatex (twice for proper cross-references)
-                for _ in range(2):
-                    result = subprocess.run([
-                        'pdflatex',
-                        '-interaction=nonstopmode',
-                        '-output-directory', str(temp_path),
-                        str(tex_file)
-                    ], capture_output=True, text=True, timeout=30)
-                    
-                    if result.returncode != 0:
-                        logging.error(f"LaTeX compilation failed: {result.stderr}")
-                        # Try to extract useful error information
-                        if "! LaTeX Error:" in result.stdout:
-                            error_line = next((line for line in result.stdout.split('\n') 
-                                             if "! LaTeX Error:" in line), "Unknown error")
-                            logging.error(f"LaTeX Error: {error_line}")
-                        return None
+            # Substitute placeholders
+            document_content = self.substitute_template(template_content, template_data)
+            
+            # Generate output filename if not provided
+            if not output_filename:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_filename = f"{template_name}_{timestamp}.tex"
+            
+            # Save generated document
+            output_path = self.output_dir / output_filename
+            
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(document_content)
+            
+            self.logger.info(f"Generated LaTeX document: {output_path}")
+            return str(output_path), document_content
+            
+        except Exception as e:
+            self.logger.error(f"Error generating document {template_name}: {e}")
+            raise
+    
+    def compile_to_pdf(self, tex_file_path: str) -> Optional[str]:
+        """Compile LaTeX file to PDF using pdflatex."""
+        try:
+            tex_path = Path(tex_file_path)
+            if not tex_path.exists():
+                raise FileNotFoundError(f"LaTeX file not found: {tex_file_path}")
+            
+            # Create temporary directory for compilation
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
                 
-                # Read the generated PDF
-                pdf_file = temp_path / "document.pdf"
-                if pdf_file.exists():
-                    with open(pdf_file, 'rb') as f:
-                        pdf_data = f.read()
-                    return pdf_data
+                # Copy tex file to temp directory
+                temp_tex = temp_path / tex_path.name
+                temp_tex.write_text(tex_path.read_text(encoding='utf-8'), encoding='utf-8')
+                
+                # Compile with pdflatex
+                cmd = [
+                    'pdflatex',
+                    '-interaction=nonstopmode',
+                    '-output-directory', str(temp_path),
+                    str(temp_tex)
+                ]
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=temp_path)
+                
+                if result.returncode == 0:
+                    # Move PDF to output directory
+                    pdf_name = tex_path.stem + '.pdf'
+                    temp_pdf = temp_path / pdf_name
+                    output_pdf = self.output_dir / pdf_name
+                    
+                    if temp_pdf.exists():
+                        output_pdf.write_bytes(temp_pdf.read_bytes())
+                        self.logger.info(f"PDF generated successfully: {output_pdf}")
+                        return str(output_pdf)
+                    else:
+                        self.logger.error("PDF file not generated")
+                        return None
                 else:
-                    logging.error("PDF file was not generated")
+                    self.logger.error(f"LaTeX compilation failed: {result.stderr}")
                     return None
                     
-            except subprocess.TimeoutExpired:
-                logging.error("LaTeX compilation timed out")
-                return None
+        except FileNotFoundError:
+            self.logger.warning("pdflatex not found. Install LaTeX distribution for PDF generation.")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error compiling PDF: {e}")
+            return None
+    
+    def generate_all_documents(self, work_data: Dict, bidders: List[Dict]) -> Dict[str, Dict[str, str]]:
+        """Generate all standard tender documents."""
+        results = {}
+        
+        document_types = [
+            'comparative_statement',
+            'letter_of_acceptance', 
+            'scrutiny_sheet',
+            'work_order'
+        ]
+        
+        for doc_type in document_types:
+            try:
+                tex_path, content = self.generate_document(doc_type, work_data, bidders)
+                pdf_path = self.compile_to_pdf(tex_path)
+                
+                results[doc_type] = {
+                    'tex_path': tex_path,
+                    'pdf_path': pdf_path or 'PDF generation failed',
+                    'content': content,
+                    'status': 'success' if pdf_path else 'tex_only'
+                }
+                
             except Exception as e:
-                logging.error(f"Error during LaTeX compilation: {e}")
-                return None
+                self.logger.error(f"Error generating {doc_type}: {e}")
+                results[doc_type] = {
+                    'status': 'error',
+                    'error': str(e)
+                }
+        
+        return results
+    
+    def get_generated_files(self) -> List[Dict[str, str]]:
+        """Get list of all generated files."""
+        files = []
+        
+        for file_path in self.output_dir.iterdir():
+            if file_path.is_file():
+                files.append({
+                    'name': file_path.name,
+                    'path': str(file_path),
+                    'type': file_path.suffix[1:],
+                    'size': file_path.stat().st_size,
+                    'modified': datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                })
+        
+        return sorted(files, key=lambda x: x['modified'], reverse=True)
+    
+    def cleanup_old_files(self, days_old: int = 7):
+        """Clean up generated files older than specified days."""
+        cutoff_date = datetime.now() - timedelta(days=days_old)
+        
+        for file_path in self.output_dir.iterdir():
+            if file_path.is_file():
+                file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+                if file_time < cutoff_date:
+                    try:
+                        file_path.unlink()
+                        self.logger.info(f"Cleaned up old file: {file_path.name}")
+                    except Exception as e:
+                        self.logger.error(f"Error cleaning up {file_path.name}: {e}")
