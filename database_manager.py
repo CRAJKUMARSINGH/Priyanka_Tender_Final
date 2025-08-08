@@ -5,7 +5,7 @@ Handles SQLite operations for bidder credentials
 
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import os
 
@@ -260,10 +260,12 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute('''
-                    DELETE FROM bidders 
-                    WHERE last_used < datetime('now', '-{} days')
-                '''.format(days))
+                # Compute cutoff timestamp in Python to avoid string formatting in SQL
+                cutoff_ts = (datetime.utcnow() - timedelta(days=int(days))).strftime('%Y-%m-%d %H:%M:%S')
+                cursor.execute(
+                    'DELETE FROM bidders WHERE last_used < ?',
+                    (cutoff_ts,)
+                )
                 
                 conn.commit()
                 return cursor.rowcount
