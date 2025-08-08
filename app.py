@@ -7,7 +7,7 @@ import tempfile
 import logging
 
 # Import our enhanced custom modules
-from theme import apply_custom_css
+from theme import apply_custom_css, get_theme_colors, get_gradient_styles
 from ui_components import (
     create_header, create_footer, show_balloons, create_info_card,
     create_metric_card, create_status_indicator, create_progress_card,
