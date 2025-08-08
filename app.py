@@ -14,6 +14,7 @@ from ui_components import (
     create_feature_grid, create_system_status, show_celebration_message
 )
 from latex_generator import LaTeXGenerator
+from excel_parser import ExcelParser
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
