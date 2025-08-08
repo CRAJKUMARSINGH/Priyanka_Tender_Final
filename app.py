@@ -306,18 +306,10 @@ def handle_nit_upload():
                     os.unlink(tmp_file_path)
                 except Exception as cleanup_error:
                     logging.error(f"Error cleaning up temporary file: {cleanup_error}")
-        margin: 10px 0;
-        border-left: 4px solid #1f77b4;
-    ">
-        <h4 style="margin: 0; color: #2c3e50;">✨ Enhanced Features</h4>
-        <ul style="margin: 10px 0; padding-left: 20px; color: #6c757d;">
-            <li>Professional UI Design</li>
-            <li>Balloon Theme Integration</li>
-            <li>Enhanced Branding</li>
-            <li>Responsive Layout</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+            
+            # Show error message to user
+            st.error(f"Error processing NIT file: {str(e)}")
+            return
 
     operation = st.sidebar.radio(
         "Select Operation:",

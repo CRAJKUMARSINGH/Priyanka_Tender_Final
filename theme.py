@@ -96,16 +96,6 @@ def apply_custom_css():
         box-shadow: 0 6px 12px rgba(0,0,0,0.15);
     }
 
-    /* Fix for Popper.js tooltip issues */
-    [role='tooltip'] {
-        z-index: 9999 !important;
-    }
-    
-    /* Ensure Popper elements have proper stacking context */
-    [data-popper-placement] {
-        z-index: 9999 !important;
-    }
-    
     /* Metric containers with enhanced styling */
     .metric-container {
         background: linear-gradient(135deg, #ffffff, #f8f9fa);
