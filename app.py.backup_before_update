@@ -7,13 +7,35 @@ import tempfile
 import logging
 
 # Import our enhanced custom modules
-from theme import apply_custom_css
+from theme import apply_custom_css, get_theme_colors, get_gradient_styles
 from ui_components import (
     create_header, create_footer, show_balloons, create_info_card,
     create_metric_card, create_status_indicator, create_progress_card,
     create_feature_grid, create_system_status, show_celebration_message
 )
-from latex_generator import LaTeXGenerator
+from tender_processor import TenderProcessor
+from excel_parser import ExcelParser
+from bidder_manager import BidderManager
+from report_generator import ReportGenerator
+from document_generator import DocumentGenerator
+from comparative_statement_generator import ComparativeStatementGenerator
+from letter_acceptance_generator import LetterAcceptanceGenerator
+from work_order_generator import WorkOrderGenerator
+from scrutiny_sheet_generator import ScrutinySheetGenerator
+from date_utils import DateUtils
+from pdf_generator import PDFGenerator
+from latex_pdf_generator import LatexPDFGenerator
+from zip_generator import ZipGenerator
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -34,59 +56,37 @@ st.set_page_config(
 # Apply enhanced custom styling
 apply_custom_css()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Apply custom CSS
-try:
-    apply_custom_css()
-except Exception as e:
-    st.error(f"Error applying custom CSS: {str(e)}")
-
 def initialize_session_state():
-    """Initialize the session state with default values."""
-    if 'initialized' not in st.session_state:
-        st.session_state.initialized = True
-        st.session_state.current_work = {
-            'work_info': {
-                'estimated_cost': 0,
-                'earnest_money': 0,
-                'work_name': '',
-                'department': '',
-                'location': '',
-                'tender_number': '',
-                'tender_date': datetime.now().strftime('%Y-%m-%d'),
-                'bid_submission_date': '',
-                'bid_opening_date': ''
-            },
-            'bidders': [],
-            'documents': {}
-        }
-        st.session_state.bidders = []
-        st.session_state.documents = {}
-        st.session_state.current_step = 1
-        st.session_state.show_celebration = False
-        st.session_state.celebration_message = ""
-        st.session_state.clipboard = ""
-        st.session_state.page = "home"  # Add page navigation state
+    if 'works' not in st.session_state:
+        st.session_state.works = []
+    if 'current_work' not in st.session_state:
+        st.session_state.current_work = None
+    if 'valid_bidders' not in st.session_state:
+        st.session_state.valid_bidders = {}
+    if 'bidder_inputs' not in st.session_state:
+        st.session_state.bidder_inputs = {}
+    if 'latex_gen' not in st.session_state:
+        st.session_state.latex_gen = LatexPDFGenerator()
+    if 'zip_gen' not in st.session_state:
+        st.session_state.zip_gen = ZipGenerator()
+    if 'tender_processor' not in st.session_state:
+        st.session_state.tender_processor = TenderProcessor()
+    if 'excel_parser' not in st.session_state:
+        st.session_state.excel_parser = ExcelParser()
+    if 'bidder_manager' not in st.session_state:
+        st.session_state.bidder_manager = BidderManager()
 
 def main():
     """Enhanced main application function with professional UI."""
-
     # Create enhanced header with branding
     create_header()
     
     # System status indicator
     create_system_status()
-
+    
     # Initialize session state with enhanced tracking
-    if 'current_work' not in st.session_state:
-        st.session_state.current_work = None
-    if 'bidders' not in st.session_state:
-        st.session_state.bidders = []
-    if 'ui_migration_complete' not in st.session_state:
-        st.session_state.ui_migration_complete = True
-
+    initialize_session_state()
+    
     # Enhanced sidebar navigation with professional styling
     st.sidebar.markdown("### 🎯 Enhanced Navigation")
     st.sidebar.markdown("---")
@@ -113,180 +113,26 @@ def main():
     operation = st.sidebar.radio(
         "Select Operation:",
         [
+            "🏠 Home",
             "📄 Upload NIT Document",
             "👥 Manage Bidders", 
             "📊 Generate Reports",
-            "📝 Generate Documents",
-            "🎨 UI Showcase"
+            "📝 Generate Documents"
         ],
         help="Choose your operation from the enhanced menu"
     )
-
-    # Main content area with enhanced routing
-    if operation == "📄 Upload NIT Document":
-        handle_nit_upload()
-    elif operation == "👥 Manage Bidders":
-        handle_bidder_management()
-    elif operation == "📊 Generate Reports":
-        handle_report_generation()
-    elif operation == "📝 Generate Documents":
-        handle_document_generation()
-    elif operation == "🎨 UI Showcase":
-        handle_ui_showcase()
-
-    # Enhanced footer with professional branding
-    create_footer()
-
-def handle_nit_upload():
-    """Enhanced NIT document upload with professional UI."""
-    st.header("📄 Enhanced NIT Document Upload")
-
-    # Feature grid showcase
-    create_feature_grid()
-
-    create_info_card(
-        "Professional NIT Document Processing",
-        "Upload your Notice Inviting Tender (NIT) Excel file with our enhanced processing engine. "
-        "The system features improved date parsing, validation, and professional UI feedback. "
-        "Experience the new balloon theme celebrations upon successful uploads!",
-        "📄"
-    )
-
-    # Enhanced file uploader section
-    col1, col2 = st.columns([2, 1])
     
-    with col1:
-        uploaded_file = st.file_uploader(
-            "Choose NIT Excel file",
-            type=['xlsx', 'xls'],
-            help="Upload the official NIT Excel document for enhanced processing"
-        )
-
-    with col2:
-        create_metric_card(
-            "Upload Status",
-            "Ready" if not uploaded_file else "Processing",
-            "Enhanced file processing engine active",
-            "📤"
-        )
-
-    if uploaded_file is not None:
-        # Progress indicator
-        progress_container = st.container()
-        
-        with progress_container:
-            create_progress_card("Processing NIT Document", 25, "Initializing enhanced parser...")
-            
-        try:
-            # Simulate enhanced processing with progress updates
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
-                tmp_file.write(uploaded_file.getvalue())
-                tmp_file_path = tmp_file.name
-
-            # Update progress
-            progress_container.empty()
-            with progress_container:
-                create_progress_card("Processing NIT Document", 50, "Parsing Excel data...")
-
-            # Simulate work data parsing (in real implementation, use actual parser)
-            work_data = {
-                'work_name': 'Sample Tender Work - Enhanced Processing',
-                'nit_number': 'NIT/2024/ENHANCED/001',
-                'work_info': {
-                    'estimated_cost': 1000000.00,
-                    'earnest_money': 20000.00,
-                    'date': '15-08-2024',
-                    'time_of_completion': '90 days'
-                }
-            }
-
-            # Update progress
-            progress_container.empty() 
-            with progress_container:
-                create_progress_card("Processing NIT Document", 100, "Processing complete!")
-
-            # Clean up temporary file
-            os.unlink(tmp_file_path)
-
-            if work_data:
-                st.session_state.current_work = work_data
-                
-                # Enhanced success feedback with balloon celebration
-                show_celebration_message("NIT document processed successfully with enhanced UI!")
-                show_balloons()
-
-                # Enhanced information display
-                st.markdown("### 📋 Processed Work Information")
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    create_metric_card(
-                        "Estimated Cost",
-                        f"₹{work_data['work_info']['estimated_cost']:,.2f}",
-                        "Total project value",
-                        "💰"
-                    )
-
-                with col2:
-                    create_metric_card(
-                        "Earnest Money",
-                        f"₹{work_data['work_info']['earnest_money']:,.2f}",
-                        "Required deposit",
-                        "🏦"
-                    )
-
-                with col3:
-                    create_metric_card(
-                        "Timeline",
-                        work_data['work_info']['time_of_completion'],
-                        "Project duration",
-                        "⏱️"
-                    )
-
-                # Enhanced work details
-                st.markdown("### 📝 Work Details")
-                
-                details_col1, details_col2 = st.columns(2)
-                
-                with details_col1:
-                    st.markdown(f"""
-                    <div style="
-                        background: linear-gradient(135deg, #f8f9fa, #ffffff);
-                        padding: 20px;
-                        border-radius: 12px;
-                        border-left: 4px solid #1f77b4;
-                        margin: 10px 0;
-                    ">
-                        <h4 style="margin: 0 0 15px 0; color: #2c3e50;">🏗️ Project Information</h4>
-                        <p><strong>Work Name:</strong> {work_data['work_name']}</p>
-                        <p><strong>NIT Number:</strong> {work_data['nit_number']}</p>
-                        <p><strong>Processing Status:</strong> <span style="color: #28a745;">✅ Enhanced Processing Complete</span></p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with details_col2:
-                    st.markdown(f"""
-                    <div style="
-                        background: linear-gradient(135deg, #f8f9fa, #ffffff);
-                        padding: 20px;
-                        border-radius: 12px;
-                        border-left: 4px solid #28a745;
-                        margin: 10px 0;
-                    ">
-                        <h4 style="margin: 0 0 15px 0; color: #2c3e50;">📅 Timeline Details</h4>
-                        <p><strong>Date:</strong> {work_data['work_info']['date']}</p>
-                        <p><strong>Completion Time:</strong> {work_data['work_info']['time_of_completion']}</p>
-                        <p><strong>UI Version:</strong> <span style="color: #1f77b4;">Enhanced 2.0</span></p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-            else:
-                create_status_indicator("error", "Failed to parse NIT document. Please check the file format.")
-
-        except Exception as e:
-            create_status_indicator("error", f"Error processing file: {str(e)}")
-            logging.error(f"Error processing NIT file: {e}")
+    # Route to the appropriate page based on user selection
+    if "Home" in operation:
+        show_home()
+    elif "NIT Upload" in operation:
+        handle_nit_upload()
+    elif "Manage Bidders" in operation:
+        handle_bidder_management()
+    elif "Generate Reports" in operation:
+        handle_report_generation()
+    elif "Generate Documents" in operation:
+        handle_document_generation()
     
     # Create professional footer
     create_footer()
@@ -557,79 +403,15 @@ def handle_bidder_management():
         "👥"
     )
     
-    # Bidder database with enhanced professional data
-    bidder_database = {
-        "ABC Construction Ltd.": {
-            "address": "123 Business Street, Professional City",
-            "last_used": "2024-08-01",
-            "contact_person": "Mr. Rajesh Kumar",
-            "email": "rajesh.kumar@abcconstruction.com",
-            "phone": "+91 98765 43210",
-            "registration_number": "U45201MH2010PTC207532",
-            "pan_number": "AAECA1234A",
-            "gstin": "27AAECA1234A1Z5",
-            "average_rating": 4.5,
-            "projects_completed": 42,
-            "specialization": ["Road Construction", "Bridge Works", "Infrastructure"]
-        },
-        "XYZ Engineers Pvt. Ltd.": {
-            "address": "456 Industrial Area, Corporate Town",
-            "last_used": "2024-07-15",
-            "contact_person": "Ms. Priya Sharma",
-            "email": "priya.sharma@xyzengineers.com",
-            "phone": "+91 98765 12340",
-            "registration_number": "U74999MH2005PTC157759",
-            "pan_number": "AAECB5678B",
-            "gstin": "27AAECB5678B1Z6",
-            "average_rating": 4.2,
-            "projects_completed": 28,
-            "specialization": ["Structural Engineering", "Project Management"]
-        },
-        "Professional Builders Co.": {
-            "address": "789 Commercial Complex, Business District",
-            "last_used": "2024-08-05",
-            "contact_person": "Mr. Amit Patel",
-            "email": "amit.patel@probuilders.co.in",
-            "phone": "+91 98765 98765",
-            "registration_number": "U45400MH2007PTC172345",
-            "pan_number": "AAECC9012C",
-            "gstin": "27AAECC9012C1Z7",
-            "average_rating": 4.7,
-            "projects_completed": 65,
-            "specialization": ["Commercial Construction", "Interior Design"]
-        },
-        "InfraTech Solutions": {
-            "address": "101 Tech Park, IT Hub",
-            "last_used": "2024-07-28",
-            "contact_person": "Mr. Sanjay Verma",
-            "email": "sanjay.verma@infratech.in",
-        },
-        "Premier Infrastructure": {
-            "address": "2020 Business Park, Downtown",
-            "last_used": "2024-08-02"
-        },
-        "Global Engineering Solutions": {
-            "address": "3030 Tech Park, Innovation District",
-            "last_used": "2024-07-25"
-        },
-        "Metro Builders & Developers": {
-            "address": "4040 Urban Center, City Plaza",
-            "last_used": "2024-07-30"
-        },
-        "Summit Constructions": {
-            "address": "5050 Hilltop Road, Uptown",
-            "last_used": "2024-08-03"
-        },
-        "Pinnacle Infrastructure": {
-            "address": "6060 Summit Avenue, Business Hub",
-            "last_used": "2024-07-28"
-        },
-        "Apex Engineering Works": {
-            "address": "7070 Industrial Zone, Sector 45",
-            "last_used": "2024-08-04"
-        }
-    }
-    
+    # Load bidder database
+    bidder_database = {}
+    try:
+        with open('bidder_database.json', 'r', encoding='utf-8') as f:
+            bidder_database = json.load(f)
+    except Exception as e:
+        st.warning(f"⚠️ Could not load bidder database: {str(e)}. Creating new database.")
+        bidder_database = {}
+
     available_bidders = list(bidder_database.keys())
     
     # Enhanced bidder statistics
@@ -642,15 +424,15 @@ def handle_bidder_management():
             "In database",
             "👥"
         )
-    
+
     with col2:
         create_metric_card(
             "Selected Bidders", 
-            str(len(st.session_state.bidders)),
+            str(len(st.session_state.get('bidders', []))),
             "Currently active",
             "✅"
         )
-    
+
     with col3:
         create_metric_card(
             "Processing Status",
@@ -658,7 +440,7 @@ def handle_bidder_management():
             "UI version 2.0",
             "🚀"
         )
-    
+
     # Enhanced bidder selection interface
     st.markdown("### 🎯 Enhanced Bidder Selection")
     
@@ -666,161 +448,149 @@ def handle_bidder_management():
         "Select number of participating bidders:",
         min_value=1,
         max_value=10,
-        value=min(3, len(available_bidders)),
+        value=3,
         help="Choose how many bidders participated in this tender"
     )
-    
+
     # Enhanced bidder input interface
     if num_bidders:
         st.markdown("### 📝 Bidder Details Entry")
-        
         bidder_data_list = []
         all_valid = True
-        
-        # Get bidders that haven't been selected yet
-        selected_bidder_names = [b['name'] for b in st.session_state.bidders]
-        available_for_selection = [b for b in available_bidders if b not in selected_bidder_names]
-        
+
         for i in range(num_bidders):
             with st.expander(f"🏢 Bidder {i+1} Details", expanded=True):
                 col1, col2 = st.columns([2, 1])
-                
+
                 with col1:
-                    # If we're editing existing bidders, show them first
-                    current_options = []
-                    if i < len(st.session_state.bidders):
-                        current_bidder = st.session_state.bidders[i]
-                        current_options = [current_bidder['name']]
-                    
                     selected_bidder = st.selectbox(
                         f"Select Bidder {i+1}:",
-                        options=current_options + [""] + [b for b in available_for_selection if b not in current_options],
+                        options=[""] + available_bidders,
                         key=f"enhanced_bidder_select_{i}",
                         help="Choose from the enhanced bidder database"
                     )
-                    
+
+                    # Show bidder information if selected from database
                     if selected_bidder and selected_bidder in bidder_database:
-                        st.info(f"📍 **Address:** {bidder_database[selected_bidder]['address']}")
-                        st.success(f"🗓️ **Last Used:** {bidder_database[selected_bidder]['last_used']}")
-                
+                        st.info(f"📍 **Address:** {bidder_database[selected_bidder].get('address', 'N/A')}")
+                        st.success(f"🗓️ **Last Used:** {bidder_database[selected_bidder].get('last_used', 'Never')}")
+
                 with col2:
-                    # If editing existing bidder, show their current percentage
-                    default_percentage = ""
-                    if i < len(st.session_state.bidders):
-                        default_percentage = f"{st.session_state.bidders[i]['percentage']:+.2f}"
-                        
                     percentage_str = st.text_input(
-                        f"Percentage (%), e.g. -5.50:",
-                        value=default_percentage,
+                        f"Percentage (%):",
+                        placeholder="e.g., -5.50",
                         key=f"enhanced_percentage_{i}",
                         help="Enter % above (+) or below (-) estimate"
                     )
-                    
-                    # Enhanced validation and calculation
-                    if selected_bidder and percentage_str:
-                        try:
-                            percentage = float(percentage_str)
-                            if -99.99 <= percentage <= 99.99:
-                                # Handle different work data structures
-                                work_data = st.session_state.get('current_work', {})
-                                work_info = work_data.get('work_info', work_data)  # Fallback to work_data if work_info doesn't exist
-                                estimated_cost = work_info.get('estimated_cost', 0)  # Default to 0 if not found
-                                
-                                if estimated_cost == 0:
-                                    create_status_indicator("warning", "Warning: Estimated cost not found. Using 0 as default.")
-                                    
-                                bid_amount = estimated_cost * (1 + percentage / 100)
-                                
-                                # Enhanced bid amount display
-                                st.markdown(f"""
-                                <div style="
-                                    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-                                    padding: 15px;
-                                    border-radius: 8px;
-                                    border-left: 4px solid #28a745;
-                                    margin: 10px 0;
-                                ">
-                                    <h4 style="margin: 0; color: #155724;">💰 Calculated Bid Amount</h4>
-                                    <p style="margin: 5px 0; font-size: 1.2rem; font-weight: bold; color: #155724;">
-                                        ₹{bid_amount:,.2f}
-                                    </p>
-                                    <p style="margin: 0; color: #155724; font-size: 0.9rem;">
-                                        ({percentage:+.2f}% from estimate)
-                                    </p>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                
-                                bidder_data = {
-                                    'name': selected_bidder,
-                                    'address': bidder_database[selected_bidder]['address'],
-                                    'percentage': percentage,
-                                    'bid_amount': bid_amount,
-                                    'earnest_money': st.session_state.current_work['work_info'].get('earnest_money', 0),
-                                    'date_added': datetime.now().strftime("%Y-%m-%d")
-                                }
-                                bidder_data_list.append(bidder_data)
-                            else:
-                                create_status_indicator("error", "Percentage must be between -99.99% and +99.99%")
-                                all_valid = False
-                        except ValueError:
-                            create_status_indicator("error", "Please enter a valid percentage value")
+
+                # Enhanced validation and calculation
+                if selected_bidder and percentage_str:
+                    try:
+                        percentage = float(percentage_str)
+                        if -99.99 <= percentage <= 99.99:
+                            estimated_cost = st.session_state.current_work.get('estimated_cost', 
+                                                                           st.session_state.current_work.get('work_info', {})
+                                                                           .get('estimated_cost', 0))
+                            bid_amount = estimated_cost * (1 + percentage / 100)
+
+                            # Enhanced bid amount display
+                            st.markdown(f"""
+                            <div style="
+                                background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                                padding: 15px;
+                                border-radius: 8px;
+                                border-left: 4px solid #28a745;
+                                margin: 10px 0;
+                            ">
+                                <h4 style="margin: 0; color: #155724;">💰 Calculated Bid Amount</h4>
+                                <p style="margin: 5px 0; font-size: 1.2rem; font-weight: bold; color: #155724;">
+                                    ₹{bid_amount:,.2f}
+                                </p>
+                                <p style="margin: 0; color: #155724; font-size: 0.9rem;">
+                                    ({percentage:+.2f}% from estimate)
+                                </p>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                            bidder_data = {
+                                'name': selected_bidder,
+                                'address': bidder_database[selected_bidder].get('address', ''),
+                                'percentage': percentage,
+                                'bid_amount': bid_amount,
+                                'earnest_money': st.session_state.current_work.get('earnest_money', 
+                                                                               st.session_state.current_work.get('work_info', {})
+                                                                               .get('earnest_money', 0)),
+                                'date_added': DateUtils().get_current_date()
+                            }
+                            bidder_data_list.append(bidder_data)
+                        else:
+                            create_status_indicator("error", "Percentage must be between -99.99% and +99.99%")
                             all_valid = False
-                    elif selected_bidder or percentage_str:
+                    except ValueError:
+                        create_status_indicator("error", "Please enter a valid percentage value")
                         all_valid = False
+                elif selected_bidder or percentage_str:
+                    all_valid = False
         
         # Enhanced action buttons
         st.markdown("### 🎯 Actions")
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("✅ Save All Bidders", type="primary", 
-                        disabled=not all_valid or len(bidder_data_list) != num_bidders,
-                        help="Save all bidders with their bid amounts"):
+            if st.button("🚀 Add All Bidders", type="primary", disabled=not all_valid or len(bidder_data_list) != num_bidders):
                 st.session_state.bidders = bidder_data_list
-                show_celebration_message(f"Successfully saved {len(bidder_data_list)} bidders!")
-                show_balloons()
-                st.rerun()
+                
+                # Update bidder database with last used dates and add new bidders
+                for bidder_data in bidder_data_list:
+                    bidder_name = bidder_data['name']
+                    if bidder_name in bidder_database:
+                        bidder_database[bidder_name]['last_used'] = DateUtils().get_current_date()
+                        bidder_database[bidder_name]['total_tenders'] = bidder_database[bidder_name].get('total_tenders', 0) + 1
+                    else:
+                        bidder_database[bidder_name] = {
+                            'address': bidder_data['address'],
+                            'date_added': DateUtils().get_current_date(),
+                            'last_used': DateUtils().get_current_date(),
+                            'total_tenders': 1
+                        }
+                
+                # Save updated database
+                try:
+                    with open('bidder_database.json', 'w', encoding='utf-8') as f:
+                        json.dump(bidder_database, f, indent=2, ensure_ascii=False)
+                    show_celebration_message(f"Successfully added {len(bidder_data_list)} bidders with enhanced processing!")
+                    show_balloons()
+                    st.rerun()
+                except Exception as e:
+                    create_status_indicator("error", f"Could not update bidder database: {str(e)}")
         
         with col2:
-            if st.button("🔄 Reset All Bidders", type="secondary",
-                        help="Clear all bidders and start over"):
+            if st.button("🔄 Reset Selection", type="secondary"):
                 st.session_state.bidders = []
-                create_status_indicator("info", "All bidders have been reset")
+                if 'bidder_inputs' in st.session_state:
+                    del st.session_state.bidder_inputs
+                create_status_indicator("info", "Bidder selection reset successfully")
                 st.rerun()
-        
+
         with col3:
-            if st.button("📋 Copy Bidder List", type="secondary",
-                        help="Copy the current bidder list to clipboard"):
-                if st.session_state.bidders:
-                    bidder_text = "\n".join([f"{i+1}. {b['name']}: ₹{b['bid_amount']:,.2f} ({b['percentage']:+.2f}%)" 
-                                           for i, b in enumerate(st.session_state.bidders)])
-                    st.session_state.clipboard = bidder_text
-                    create_status_indicator("success", "Bidder list copied to clipboard!")
-                else:
-                    create_status_indicator("warning", "No bidders to copy")
-    
-    # Display current bidders in an enhanced table
-    if st.session_state.bidders:
-        st.markdown("### 📊 Current Bidder Summary")
-        
-        # Sort bidders by bid amount (ascending)
-        sorted_bidders = sorted(st.session_state.bidders, key=lambda x: x['bid_amount'])
-        
-        # Create enhanced DataFrame with rank, bidder info, and bid details
-        df_data = []
-        for i, bidder in enumerate(sorted_bidders, 1):
-            df_data.append({
-                'Rank': i,
-                'Bidder Name': bidder['name'],
-                'Address': bidder.get('address', 'N/A'),
-                'Percentage': f"{bidder['percentage']:+.2f}%",
-                'Bid Amount': f"₹{bidder['bid_amount']:,.2f}",
-                'Status': '✅ Active' if i == 1 else 'Active',
-                '_bid_amount': bidder['bid_amount']  # For sorting
-            })
-        
-        # Create and display the DataFrame
-        if df_data:
+            if st.button("🎨 Show UI Features", type="secondary"):
+                show_celebration_message("Enhanced UI features showcased!")
+
+        # Enhanced bidder display
+        if st.session_state.get('bidders'):
+            st.markdown("### 📊 Current Bidder Summary")
+
+            # Create enhanced DataFrame
+            df_data = []
+            for i, bidder in enumerate(st.session_state.bidders):
+                df_data.append({
+                    'Rank': i + 1,
+                    'Bidder Name': bidder['name'],
+                    'Address': bidder.get('address', 'N/A'),
+                    'Percentage': f"{bidder.get('percentage', 0):+.2f}%",
+                    'Bid Amount': f"₹{bidder.get('bid_amount', 0):,.2f}",
+                    'Status': '✅ Active'
+                })
 
             df = pd.DataFrame(df_data)
             st.dataframe(df, use_container_width=True)
@@ -1180,289 +950,7 @@ def handle_report_generation():
                 logging.error(f"Error generating detailed report: {e}")
 
 def handle_document_generation():
-    """Enhanced document generation with integrated LaTeX templates."""
-    st.header("📝 Enhanced Document Generation with LaTeX Templates")
-    
-    if not st.session_state.current_work or not st.session_state.bidders:
-        create_status_indicator("warning", "Please upload NIT document and add bidders first to enable document generation.")
-        return
-    
-    # Initialize LaTeX generator
-    if 'latex_generator' not in st.session_state:
-        st.session_state.latex_generator = LaTeXGenerator()
-    
-    create_info_card(
-        "Professional LaTeX Document Suite",
-        "Generate official tender documents using integrated LaTeX templates with professional formatting, "
-        "automated data substitution, and PDF compilation. Experience government-standard document quality.",
-        "📝"
-    )
-    
-    # Enhanced document generation interface
-    st.markdown("### 🎯 Generate Official Documents")
-    
-    # Document type selection with descriptions
-    doc_types = {
-        "📋 Comparative Statement": {
-            "template": "comparative_statement",
-            "description": "Professional bidder comparison with landscape format and tabular layout",
-            "features": ["Bidder ranking table", "Cost analysis", "Professional formatting"]
-        },
-        "📜 Letter of Acceptance": {
-            "template": "letter_of_acceptance", 
-            "description": "Official acceptance letter with government letterhead format",
-            "features": ["Official letterhead", "Legal formatting", "Automated data insertion"]
-        },
-        "🔍 Scrutiny Sheet": {
-            "template": "scrutiny_sheet",
-            "description": "Detailed tender scrutiny documentation with structured format",
-            "features": ["Compliance checklist", "Financial details", "Professional layout"]
-        },
-        "📋 Work Order": {
-            "template": "work_order",
-            "description": "Comprehensive work commencement order with timeline details",
-            "features": ["Timeline management", "Legal compliance", "Official signatures"]
-        }
-    }
-    
-    # Document selection interface
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        selected_docs = st.multiselect(
-            "Select documents to generate:",
-            options=list(doc_types.keys()),
-            default=list(doc_types.keys()),
-            help="Choose which LaTeX documents to generate"
-        )
-    
-    with col2:
-        output_format = st.radio(
-            "Output Format:",
-            ["Both LaTeX & PDF", "LaTeX Only", "PDF Only"],
-            help="Choose output format preference"
-        )
-    
-    # Generation buttons
-    st.markdown("### 🚀 Document Generation")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("🚀 Generate Selected Documents", type="primary", disabled=not selected_docs):
-            progress_container = st.container()
-            results_container = st.container()
-            
-            with progress_container:
-                create_progress_card("LaTeX Document Generation", 0, "Initializing LaTeX generator...")
-            
-            try:
-                generated_results = {}
-                total_docs = len(selected_docs)
-                
-                for i, doc_display in enumerate(selected_docs):
-                    doc_template = doc_types[doc_display]["template"]
-                    progress = ((i + 1) / total_docs) * 100
-                    
-                    progress_container.empty()
-                    with progress_container:
-                        create_progress_card("LaTeX Document Generation", progress, f"Generating {doc_display}...")
-                    
-                    try:
-                        # Generate LaTeX document with proper work data structure
-                        work_data = {
-                            'work_info': st.session_state.current_work.get('work_info', {}),
-                            'bidders': st.session_state.bidders
-                        }
-                        
-                        # Ensure work_info has required fields with defaults
-                        work_info = work_data['work_info']
-                        work_info.setdefault('item_no', '1')
-                        work_info.setdefault('work_name', 'Unnamed Work')
-                        work_info.setdefault('estimated_cost', 0)
-                        work_info.setdefault('earnest_money', 0)
-                        work_info.setdefault('date', datetime.now().strftime('%d-%m-%Y'))
-                        work_info.setdefault('time_of_completion', '90 days')
-                        
-                        tex_path, tex_content = st.session_state.latex_generator.generate_document(
-                            doc_template,
-                            work_data,
-                            st.session_state.bidders
-                        )
-                        
-                        pdf_path = None
-                        if output_format in ["Both LaTeX & PDF", "PDF Only"]:
-                            pdf_path = st.session_state.latex_generator.compile_to_pdf(tex_path)
-                        
-                        generated_results[doc_display] = {
-                            'template': doc_template,
-                            'tex_path': tex_path,
-                            'pdf_path': pdf_path,
-                            'tex_content': tex_content,
-                            'status': 'success'
-                        }
-                        
-                    except Exception as e:
-                        generated_results[doc_display] = {
-                            'template': doc_template,
-                            'status': 'error',
-                            'error': str(e)
-                        }
-                
-                progress_container.empty()
-                with progress_container:
-                    create_progress_card("LaTeX Document Generation", 100, "All documents generated successfully!")
-                
-                # Store results in session state for download
-                st.session_state.generated_documents = generated_results
-                
-                show_celebration_message(f"Successfully generated {len(generated_results)} professional LaTeX documents!")
-                show_balloons()
-                
-                # Display generation results
-                with results_container:
-                    st.markdown("### 📥 Generated Documents")
-                    
-                    success_count = sum(1 for result in generated_results.values() if result['status'] == 'success')
-                    error_count = len(generated_results) - success_count
-                    
-                    col_stat1, col_stat2, col_stat3 = st.columns(3)
-                    
-                    with col_stat1:
-                        create_metric_card("Generated", str(success_count), "Documents created", "✅")
-                    
-                    with col_stat2:
-                        create_metric_card("Errors", str(error_count), "Generation issues", "❌")
-                    
-                    with col_stat3:
-                        create_metric_card("Format", output_format, "Output type", "📄")
-                    
-                    # Document download interface
-                    for doc_name, result in generated_results.items():
-                        if result['status'] == 'success':
-                            with st.expander(f"📄 {doc_name} - Ready for Download"):
-                                col_dl1, col_dl2 = st.columns(2)
-                                
-                                with col_dl1:
-                                    if result.get('tex_path') and output_format in ["Both LaTeX & PDF", "LaTeX Only"]:
-                                        try:
-                                            with open(result['tex_path'], 'r', encoding='utf-8') as f:
-                                                tex_content = f.read()
-                                            
-                                            st.download_button(
-                                                label="📄 Download LaTeX",
-                                                data=tex_content,
-                                                file_name=f"{result['template']}.tex",
-                                                mime="text/plain",
-                                                help="Download LaTeX source file"
-                                            )
-                                        except Exception as e:
-                                            st.error(f"Error reading LaTeX file: {e}")
-                                
-                                with col_dl2:
-                                    if result.get('pdf_path') and output_format in ["Both LaTeX & PDF", "PDF Only"]:
-                                        try:
-                                            with open(result['pdf_path'], 'rb') as f:
-                                                pdf_content = f.read()
-                                            
-                                            st.download_button(
-                                                label="📊 Download PDF",
-                                                data=pdf_content,
-                                                file_name=f"{result['template']}.pdf",
-                                                mime="application/pdf",
-                                                help="Download compiled PDF document"
-                                            )
-                                        except Exception as e:
-                                            st.error(f"Error reading PDF file: {e}")
-                                
-                                # Preview LaTeX content
-                                if st.checkbox(f"Preview LaTeX Source - {doc_name}", key=f"preview_{result['template']}"):
-                                    st.code(result.get('tex_content', 'Content not available'), language='latex')
-                        else:
-                            create_status_indicator("error", f"Failed to generate {doc_name}: {result.get('error', 'Unknown error')}")
-                
-            except Exception as e:
-                progress_container.empty()
-                create_status_indicator("error", f"Document generation failed: {str(e)}")
-                logging.error(f"Document generation error: {e}")
-    
-    with col2:
-        if st.button("📋 Preview Templates", type="secondary"):
-            st.markdown("### 📖 LaTeX Template Preview")
-            
-            template_files = [
-                "comparative_statement.tex",
-                "letter_of_acceptance.tex", 
-                "scrutiny_sheet.tex",
-                "work_order.tex"
-            ]
-            
-            selected_template = st.selectbox(
-                "Select template to preview:",
-                template_files,
-                help="Choose a LaTeX template to preview"
-            )
-            
-            try:
-                template_path = f"latex_templates/{selected_template}"
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    template_content = f.read()
-                
-                st.code(template_content, language='latex')
-            except Exception as e:
-                create_status_indicator("error", f"Error loading template: {e}")
-    
-    with col3:
-        if st.button("🧹 Cleanup Old Files", type="secondary"):
-            try:
-                st.session_state.latex_generator.cleanup_old_files(days_old=7)
-                create_status_indicator("success", "Old files cleaned up successfully!")
-            except Exception as e:
-                create_status_indicator("error", f"Cleanup failed: {e}")
-    
-    # Enhanced template information section
-    st.markdown("### 📚 LaTeX Template Integration")
-    
-    integration_info = {
-        "Professional Formatting": "LaTeX templates ensure government-standard document formatting with precise layouts",
-        "Automated Data Binding": "Dynamic placeholder substitution with work and bidder information",
-        "PDF Compilation": "Automatic PDF generation using pdflatex for professional output",
-        "Template Customization": "Easily customizable templates for different government departments"
-    }
-    
-    # Display features in a grid
-    cols = st.columns(2)
-    for i, (feature, description) in enumerate(integration_info.items()):
-        with cols[i % 2]:
-            with st.container():
-                st.markdown(f"**{feature}**  \
-                {description}", unsafe_allow_html=True)
-                st.markdown("---")
-    
-    # Template customization section
-    with st.expander("🎨 Customize Templates"):
-        st.info("Advanced users can customize LaTeX templates in the 'latex_templates' directory.")
-        st.code("""# Example template structure
-\documentclass{article}
-\title{<<work_name>>}
-\begin{document}
-    \section{<<work_name>>}
-    \begin{itemize}
-        \item NIT Number: <<nit_number>>
-        \item Estimated Cost: <<estimated_cost>>
-    \end{itemize}
-\end{document}""", language='latex')
-    
-    # System requirements section
-    with st.expander("⚙️ System Requirements"):
-        st.markdown("""
-        To generate PDF documents, ensure you have the following installed:
-        - A LaTeX distribution (e.g., TeX Live, MiKTeX, or MacTeX)
-        - `pdflatex` command available in system PATH
-        - Required LaTeX packages (will be installed automatically)
-        
-        **Note:** For Windows, make sure LaTeX binaries are in your system PATH.
-        """)
+    """Handle official document generation with individual options."""
     st.header("📝 Generate Individual Documents")
     
     if not st.session_state.current_work or not st.session_state.bidders:
@@ -1971,185 +1459,30 @@ def handle_document_generation_latex():
             logging.error(f"Error in ZIP package generation: {e}")
 
 
-def handle_ui_showcase():
-    """Showcase the enhanced UI features and migration results."""
-    st.header("🎨 Enhanced UI Showcase")
-
-    create_info_card(
-        "UI Migration Complete",
-        "This showcase demonstrates the successful migration of enhanced interface components, "
-        "balloon theme, and professional branding from the source to destination repository.",
-        "🎨"
-    )
-
-    # Current Progress
-    st.markdown("### 📊 Current Progress")
-    
-    # Calculate tender processing progress (3/4 steps = 75%)
-    tender_progress = 75
-    
-    # Calculate document generation progress (2/5 steps = 40%)
-    doc_progress = 40
-    
-    # Tender Processing Progress
-    st.markdown("#### Tender Processing")
-    st.markdown(f"""
-    <div style="
-        background: #e9ecef;
-        border-radius: 10px;
-        height: 12px;
-        margin: 10px 0;
-        overflow: hidden;
-    ">
-        <div style="
-            background: linear-gradient(135deg, #1f77b4, #2c3e50);
-            height: 100%;
-            width: {tender_progress}%;
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        "></div>
-    </div>
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 0.9rem; color: #6c757d;">3 of 4 steps completed</span>
-        <span style="font-weight: 600; color: #1f77b4;">{tender_progress}%</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Document Generation Progress
-    st.markdown("#### Document Generation")
-    st.markdown(f"""
-    <div style="
-        background: #e9ecef;
-        border-radius: 10px;
-        height: 12px;
-        margin: 10px 0;
-        overflow: hidden;
-    ">
-        <div style="
-            background: linear-gradient(135deg, #1f77b4, #2c3e50);
-            height: 100%;
-            width: {doc_progress}%;
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        "></div>
-    </div>
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 0.9rem; color: #6c757d;">2 of 5 steps completed</span>
-        <span style="font-weight: 600; color: #1f77b4;">{doc_progress}%</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Migration status
-    st.markdown("### ✅ Migration Status")
-    
-    migration_items = [
-        {"item": "Enhanced Theme Styling", "status": "✅ Complete", "desc": "Professional CSS with gradients"},
-        {"item": "Balloon Theme Integration", "status": "✅ Complete", "desc": "Celebration animations active"},
-        {"item": "Professional Branding", "status": "✅ Complete", "desc": "Header and footer enhanced"},
-        {"item": "UI Components", "status": "✅ Complete", "desc": "Cards, metrics, and indicators"},
-        {"item": "Responsive Design", "status": "✅ Complete", "desc": "Mobile and desktop optimized"}
-    ]
-
-    for item in migration_items:
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #28a745;
-            margin: 10px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        ">
-            <div>
-                <strong>{item['item']}</strong><br>
-                <span style="color: #6c757d; font-size: 0.9rem;">{item['desc']}</span>
-            </div>
-            <div style="color: #28a745; font-weight: bold;">
-                {item['status']}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # UI Feature demonstration
-    st.markdown("### 🌟 Enhanced Features Demo")
-    
-    demo_col1, demo_col2 = st.columns(2)
-    
-    with demo_col1:
-        if st.button("🎉 Test Balloon Animation"):
-            show_balloons()
-            show_celebration_message("Balloon theme integration working perfectly!")
-
-        if st.button("📊 Show Metrics Demo"):
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                create_metric_card("Success Rate", "100%", "Migration complete", "✅")
-            with col2:
-                create_metric_card("UI Version", "2.0", "Enhanced edition", "🚀")
-            with col3:
-                create_metric_card("Features", "25+", "Professional components", "⭐")
-
-    with demo_col2:
-        if st.button("🎨 Test Status Indicators"):
-            create_status_indicator("success", "Migration completed successfully!")
-            create_status_indicator("info", "Enhanced UI features are now active")
-            create_status_indicator("warning", "Remember to test all functionalities")
-
-        if st.button("📈 Show Progress Demo"):
-            create_progress_card("UI Migration Progress", 100, "All components successfully integrated")
-
-    # Feature grid
-    st.markdown("### 🏆 Professional Feature Grid")
-    create_feature_grid()
-
 def main():
-    # Apply custom CSS and initialize
     apply_custom_css()
     initialize_session_state()
+    ui = UIComponents()
     
-    # Create sidebar navigation
-    st.sidebar.title("Navigation")
-    menu = ["🏠 Home", "📤 Upload NIT", "👥 Manage Bidders", "📊 Generate Reports", "📝 Generate Documents", "🎨 UI Showcase"]
-    choice = st.sidebar.selectbox("Go to", menu)
+    st.title("Tender Management System")
+    st.header("Upload NIT Document")
+    ui.render_nit_upload()
     
-    # Route to the selected page using function-based components
-    if choice == "🏠 Home":
-        st.title("Tender Management System")
-        show_home()
-    elif choice == "📤 Upload NIT":
-        st.title("Upload NIT Document")
-        handle_nit_upload()
-    elif choice == "👥 Manage Bidders" and hasattr(st.session_state, 'works') and st.session_state.works:
-        st.title("Manage Bidders")
+    if st.session_state.works:
+        st.header("Select Work")
         work_options = [(work['work_info']['item_no'], work['work_info']['work_name']) for work in st.session_state.works]
         selected_work_id = st.selectbox("Select Work", options=[f"{item_no}: {work_name}" for item_no, work_name in work_options])
         selected_work_id = selected_work_id.split(":")[0]
         st.session_state.current_work = next((work for work in st.session_state.works if work['work_info']['item_no'] == selected_work_id), None)
-        handle_bidder_management()
-    elif choice == "📊 Generate Reports" and hasattr(st.session_state, 'works') and st.session_state.works:
-        st.title("Generate Reports")
-        work_options = [(work['work_info']['item_no'], work['work_info']['work_name']) for work in st.session_state.works]
-        selected_work_id = st.selectbox("Select Work", options=[f"{item_no}: {work_name}" for item_no, work_name in work_options])
-        selected_work_id = selected_work_id.split(":")[0]
-        st.session_state.current_work = next((work for work in st.session_state.works if work['work_info']['item_no'] == selected_work_id), None)
-        handle_report_generation()
-    elif choice == "📝 Generate Documents" and hasattr(st.session_state, 'works') and st.session_state.works:
-        st.title("Generate Documents")
-        work_options = [(work['work_info']['item_no'], work['work_info']['work_name']) for work in st.session_state.works]
-        selected_work_id = st.selectbox("Select Work", options=[f"{item_no}: {work_name}" for item_no, work_name in work_options])
-        selected_work_id = selected_work_id.split(":")[0]
-        st.session_state.current_work = next((work for work in st.session_state.works if work['work_info']['item_no'] == selected_work_id), None)
+        
+        st.header(f"Manage Bidders for Work {selected_work_id}")
+        ui.render_bidder_management(selected_work_id)
+        
+        st.header(f"Generate Reports for Work {selected_work_id}")
+        ui.render_report_generation()
+        
+        st.header(f"Generate Documents for Work {selected_work_id}")
         handle_document_generation()
-    elif choice == "🎨 UI Showcase":
-        st.title("UI Showcase")
-        handle_ui_showcase()
-    else:
-        # Default view if no works are uploaded yet
-        st.title("Tender Management System")
-        st.info("Please upload an NIT document to get started.")
-        ui.render_nit_upload()
 
 if __name__ == "__main__":
     main()

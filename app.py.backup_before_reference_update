@@ -1,38 +1,24 @@
 import streamlit as st
 import pandas as pd
 import json
-import os
 from datetime import datetime
 import tempfile
 import logging
+import os
+from theme import apply_custom_css, get_theme_colors, get_gradient_styles
 
-# Import our enhanced custom modules
-from theme import apply_custom_css
+# Import UI components as functions
 from ui_components import (
-    create_header, create_footer, show_balloons, create_info_card,
-    create_metric_card, create_status_indicator, create_progress_card,
-    create_feature_grid, create_system_status, show_celebration_message
+    create_header,
+    create_footer,
+    create_info_card,
+    create_metric_card,
+    create_status_indicator,
+    create_progress_card,
+    create_feature_grid,
+    show_celebration_message,
+    show_balloons
 )
-from latex_generator import LaTeXGenerator
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Page configuration with enhanced metadata
-st.set_page_config(
-    page_title="Enhanced Tender Processing System",
-    page_icon="🏗️",
-    layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': 'https://docs.streamlit.io/',
-        'Report a bug': None,
-        'About': "Enhanced Tender Processing System v2.0 - Professional UI Migration Complete"
-    }
-)
-
-# Apply enhanced custom styling
-apply_custom_css()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
