@@ -4,148 +4,224 @@ from datetime import datetime
 from theme import apply_component_theme, get_theme_colors, get_gradient_styles
 
 def create_header():
-    """Create an enhanced professional header with branding."""
-    # Apply header theme
-    st.markdown(apply_component_theme('header'), unsafe_allow_html=True)
-    
-    # Enhanced header with gradient background and professional styling
-    header_html = """
-    <div class="custom-header">
-        <h1 style="margin: 0; font-size: 2.5rem; font-weight: 700;">
+    """Create the enhanced application header with professional styling (reference-aligned)."""
+    st.markdown("""
+    <div style="
+        text-align: center; 
+        padding: 25px; 
+        background: linear-gradient(135deg, #1f77b4, #2c3e50); 
+        border-radius: 12px; 
+        margin-bottom: 30px;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    ">
+        <h1 style="
+            color: white; 
+            margin: 0; 
+            font-size: 2.8em; 
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        ">
             🏗️ Tender Processing System
         </h1>
-        <p style="margin: 10px 0 0 0; font-size: 1.2rem; opacity: 0.9;">
-            Professional Tender Management & Document Generation Platform
+        <p style="
+            color: #ecf0f1; 
+            margin: 15px 0 0 0; 
+            font-size: 1.3em;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        ">
+            PWD Electric Division - Government Engineering Office
         </p>
-        <div style="margin-top: 15px;">
-            <span style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem;">
-                ✨ Enhanced UI Version 2.0
+        <div style="
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            display: inline-block;
+        ">
+            <span style="color: #ffffff; font-size: 0.9em; font-weight: 500;">
+                🔐 Secure • 📊 Efficient • 🎯 Accurate • 🌐 Modern • 📅 Enhanced Date Handling
             </span>
         </div>
     </div>
-    """
-    st.markdown(header_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 def create_footer():
-    """Create an enhanced professional footer with credits and system info."""
-    colors = get_theme_colors()
-    gradients = get_gradient_styles()
+    """Create the enhanced application footer with professional styling and date utilities (reference-aligned)."""
+    from datetime import datetime as _dt
+    from date_utils import DateUtils as _DU
+    _date_utils = _DU()
+    _current_date = _date_utils.get_current_date()
+    _current_time = _dt.now().strftime('%H:%M:%S')
     
-    # Enhanced footer with professional styling
-    footer_html = f"""
+    st.markdown("---")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col1:
+        st.markdown(f"""
+        <div style="
+            text-align: center; 
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            border-left: 4px solid #17a2b8;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        ">
+            <p style="color: #495057; font-size: 0.9em; margin: 0; font-weight: 600;">
+                🕒 Current Time<br>
+                <strong style="color: #2c3e50;">{_current_date}</strong><br>
+                <strong style="color: #2c3e50;">{_current_time}</strong>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="
+            text-align: center; 
+            padding: 25px; 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            border-radius: 12px; 
+            border-left: 4px solid #1f77b4;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        ">
+            <h4 style="color: white; margin-bottom: 15px; font-weight: 700;">📋 System Information</h4>
+            <p style="
+                color: #f8f9fa; 
+                line-height: 1.8;
+                margin: 0;
+                font-size: 1.05em;
+                font-weight: 600;
+            ">
+                Professional Tender Processing System<br>
+                Enhanced Date Handling & Document Generation<br>
+                PWD Electric Division - Udaipur
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style="
+            text-align: center; 
+            padding: 15px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        ">
+            <p style="color: white; font-size: 0.9em; margin: 0; font-weight: 600;">
+                💼 System Version<br>
+                <strong style="font-size: 1.1em;">v2.1.1</strong><br>
+                <span style="font-size: 0.8em; opacity: 0.9;">Date-Fixed Pro</span>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("""
     <div style="
-        background: {gradients['header_gradient']};
-        color: white;
-        padding: 30px;
-        border-radius: 12px;
-        margin-top: 50px;
-        text-align: center;
-        box-shadow: 0 -4px 8px rgba(0,0,0,0.1);
+        text-align: center; 
+        padding: 20px; 
+        color: #6c757d; 
+        font-size: 0.85em; 
+        border-top: 2px solid #dee2e6; 
+        margin-top: 30px;
+        background: linear-gradient(135deg, #f8f9fa, #ffffff);
+        border-radius: 8px;
     ">
-        <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0; font-weight: 600;">💼 Tender Processing System</h3>
-            <p style="margin: 10px 0; opacity: 0.9;">
-                Professional Document Generation & Tender Management Platform
-            </p>
-        </div>
-        
-        <div style="
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin: 20px 0;
-            padding: 20px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-        ">
-            <div>
-                <strong>📊 Features</strong><br>
-                <span style="font-size: 0.9rem;">NIT Processing • Document Generation • Report Creation</span>
-            </div>
-            <div>
-                <strong>🚀 Technology</strong><br>
-                <span style="font-size: 0.9rem;">Streamlit • Python • Professional UI</span>
-            </div>
-            <div>
-                <strong>⚡ Performance</strong><br>
-                <span style="font-size: 0.9rem;">Fast Processing • Real-time Updates • Secure</span>
-            </div>
-        </div>
-        
-        <div style="
-            border-top: 1px solid rgba(255,255,255,0.3);
-            padding-top: 20px;
-            margin-top: 20px;
-        ">
-            <p style="margin: 5px 0; font-size: 0.9rem;">
-                <strong>🏢 Developed for Professional Tender Management</strong>
-            </p>
-            <p style="margin: 5px 0; font-size: 0.8rem; opacity: 0.8;">
-                © 2024 Tender Processing System • Enhanced UI Migration • Version 2.0
-            </p>
-            <p style="margin: 5px 0; font-size: 0.8rem; opacity: 0.7;">
-                🌟 Professional Branding & Balloon Theme Integration Complete
-            </p>
-        </div>
+        <p style="margin: 5px 0; font-weight: 600;">
+            © 2024 PWD Electric Division Tender Processing System | Designed for Government Engineering Offices
+        </p>
+        <p style="margin: 10px 0; font-weight: 500;">
+            🔒 Secure • 📊 Efficient • 🎯 Accurate • 🌐 Modern • 📅 Multi-Format Date Support • 📈 Enhanced Reporting
+        </p>
+        <p style="margin: 5px 0; font-size: 0.8em; color: #868e96;">
+            Built with ❤️ for engineers, by engineers | Powered by Streamlit & Python | Date Bugs Fixed ✅
+        </p>
     </div>
-    """
-    st.markdown(footer_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 def show_balloons():
-    """Display enhanced balloon animation with professional styling."""
-    # Streamlit's built-in balloon animation
+    """Show celebration balloons with enhanced custom message (reference-aligned)."""
     st.balloons()
-    
-    # Enhanced celebration message with professional styling
-    colors = get_theme_colors()
-    
-    celebration_html = f"""
+    st.markdown("""
     <div style="
-        background: linear-gradient(135deg, {colors['success']}, #20c997);
-        color: white;
-        padding: 20px;
-        border-radius: 12px;
-        text-align: center;
-        margin: 20px 0;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        animation: celebrationPulse 2s ease-in-out;
+        text-align: center; 
+        padding: 20px; 
+        background: linear-gradient(135deg, #ff6b6b, #feca57); 
+        border-radius: 12px; 
+        margin: 15px 0;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        animation: pulse 2s infinite;
     ">
-        <h3 style="margin: 0; font-weight: 600;">🎉 Success!</h3>
-        <p style="margin: 10px 0 0 0; font-size: 1.1rem;">
-            Operation completed successfully with enhanced UI experience!
+        <h3 style="
+            color: white; 
+            margin: 0; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: 700;
+            font-size: 1.8em;
+        ">
+            🎉 Congratulations! 🎉
+        </h3>
+        <p style="
+            color: white; 
+            margin: 10px 0 0 0; 
+            font-size: 1.2em; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            font-weight: 600;
+        ">
+            Operation completed successfully with enhanced date handling accuracy!
         </p>
+        <div style="
+            margin-top: 15px;
+            font-size: 0.9em;
+            opacity: 0.9;
+        ">
+            <span style="color: white;">✨ Professional • 🎯 Accurate • ⚡ Fast • 📅 Date-Safe</span>
+        </div>
     </div>
     
     <style>
-    @keyframes celebrationPulse {{
-        0% {{ transform: scale(0.95); opacity: 0.7; }}
-        50% {{ transform: scale(1.02); opacity: 1; }}
-        100% {{ transform: scale(1); opacity: 1; }}
-    }}
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
     </style>
-    """
-    st.markdown(celebration_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 def create_info_card(title: str, content: str, icon: str = "ℹ️"):
-    """Create an enhanced professional info card with styling."""
-    # Apply card theme
-    st.markdown(apply_component_theme('card'), unsafe_allow_html=True)
-    colors = get_theme_colors()
-    
-    card_html = f"""
-    <div class="custom-card">
-        <div style="display: flex; align-items: center; margin-bottom: 15px;">
-            <span style="font-size: 1.5rem; margin-right: 10px;">{icon}</span>
-            <h3 style="margin: 0; color: {colors['dark']}; font-weight: 600;">{title}</h3>
-        </div>
-        <p style="margin: 0; color: {colors['gray']}; line-height: 1.6;">
+    """Create an enhanced informational card with professional styling (reference-aligned)."""
+    st.markdown(f"""
+    <div style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 25px;
+        border-radius: 12px;
+        margin: 20px 0;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s ease;
+    " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.2)'" 
+       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 12px rgba(0,0,0,0.15)'">
+        <h4 style="
+            color: white; 
+            margin: 0 0 15px 0;
+            font-weight: 700;
+            font-size: 1.3em;
+        ">
+            {icon} {title}
+        </h4>
+        <p style="
+            color: #f8f9fa; 
+            margin: 0; 
+            line-height: 1.7;
+            font-size: 1.05em;
+            font-weight: 500;
+        ">
             {content}
         </p>
     </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 def create_metric_card(title: str, value: str, description: str = "", icon: str = "📊"):
     """Create an enhanced metric card with professional styling."""
