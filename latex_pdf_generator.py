@@ -83,12 +83,18 @@ class LatexPDFGenerator:
         )
         pattern = re.compile(r"\{(" + placeholder_keys + r")\}")
         converted = pattern.sub(r"${\1}", template_text)
-        return Template(converted).safe_substitute(variables)
+        rendered = Template(converted).safe_substitute(variables)
+        # Basic sanity checks: matching \begin and \end blocks
+        begins = len(re.findall(r"\\begin\{[^}]+\}", rendered))
+        ends = len(re.findall(r"\\end\{[^}]+\}", rendered))
+        if begins != ends:
+            self.logger.warning(f"Rendered LaTeX begin/end mismatch: begin={begins}, end={ends}")
+        return rendered
 
     def convert_latex_to_html(self, latex_content):
         try:
             html_content = pypandoc.convert_text(
-                latex_content, 'html', format='latex', extra_args=['--standalone', '--mathjax']
+                latex_content, 'html', format='latex', extra_args=['--standalone', '--mathjax', '--quiet']
             )
             # Only write debug HTML if explicitly enabled
             if os.getenv('LATEX_DEBUG') == '1':
@@ -98,6 +104,7 @@ class LatexPDFGenerator:
             return html_content
         except Exception as e:
             self.logger.error(f"Error converting LaTeX to HTML: {str(e)}")
+            # Re-raise to trigger fallback at call sites
             raise
 
     def generate_pdf(self, html_content):
