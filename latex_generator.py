@@ -39,23 +39,43 @@ class LaTeXGenerator:
             logging.error("LaTeX (pdflatex) not found. Please install TeX Live or MiKTeX")
     
     def generate_document(self, doc_type: str, work: Dict[str, Any], 
-                         bidders: List[Dict[str, Any]]) -> Optional[bytes]:
-        """Generate a PDF document of the specified type."""
+                         bidders: List[Dict[str, Any]]) -> tuple[Path, str]:
+        """Generate a LaTeX document of the specified type.
         
+        Args:
+            doc_type: Type of document to generate (e.g., 'comparative_statement')
+            work: Dictionary containing work information
+            bidders: List of bidder dictionaries
+            
+        Returns:
+            tuple: (output_path, latex_content) where output_path is the path to the generated 
+                  LaTeX file and latex_content is the content as a string
+        """
         try:
             # Generate LaTeX content
             latex_content = self._generate_latex_content(doc_type, work, bidders)
             if not latex_content:
-                logging.error(f"Failed to generate LaTeX content for {doc_type}")
-                return None
+                raise ValueError(f"Failed to generate LaTeX content for {doc_type}")
             
-            # Compile LaTeX to PDF
-            pdf_data = self._compile_latex_to_pdf(latex_content)
-            return pdf_data
+            # Create output directory if it doesn't exist
+            output_dir = Path("generated_docs")
+            output_dir.mkdir(exist_ok=True)
+            
+            # Create a timestamped filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{doc_type}_{timestamp}.tex"
+            output_path = output_dir / filename
+            
+            # Save the LaTeX content to a file
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(latex_content)
+                
+            logging.info(f"Successfully generated LaTeX document at {output_path}")
+            return output_path, latex_content
             
         except Exception as e:
-            logging.error(f"Error generating document {doc_type}: {e}")
-            return None
+            logging.error(f"Error in generate_document for {doc_type}: {str(e)}")
+            raise
     
     def _generate_latex_content(self, doc_type: str, work: Dict[str, Any], 
                                bidders: List[Dict[str, Any]]) -> Optional[str]:
