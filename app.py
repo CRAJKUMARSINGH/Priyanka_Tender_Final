@@ -7,7 +7,8 @@ import tempfile
 import logging
 
 # Import our enhanced custom modules
-from theme import apply_custom_css
+from theme import apply_custom_css, get_theme_colors, get_gradient_styles
+from excel_parser import ExcelParser
 from ui_components import (
     create_header, create_footer, show_balloons, create_info_card,
     create_metric_card, create_status_indicator, create_progress_card,
@@ -33,42 +34,6 @@ st.set_page_config(
 
 # Apply enhanced custom styling
 apply_custom_css()
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Apply custom CSS
-try:
-    apply_custom_css()
-except Exception as e:
-    st.error(f"Error applying custom CSS: {str(e)}")
-
-def initialize_session_state():
-    """Initialize the session state with default values."""
-    if 'initialized' not in st.session_state:
-        st.session_state.initialized = True
-        st.session_state.current_work = {
-            'work_info': {
-                'estimated_cost': 0,
-                'earnest_money': 0,
-                'work_name': '',
-                'department': '',
-                'location': '',
-                'tender_number': '',
-                'tender_date': datetime.now().strftime('%Y-%m-%d'),
-                'bid_submission_date': '',
-                'bid_opening_date': ''
-            },
-            'bidders': [],
-            'documents': {}
-        }
-        st.session_state.bidders = []
-        st.session_state.documents = {}
-        st.session_state.current_step = 1
-        st.session_state.show_celebration = False
-        st.session_state.celebration_message = ""
-        st.session_state.clipboard = ""
-        st.session_state.page = "home"  # Add page navigation state
 
 def main():
     """Enhanced main application function with professional UI."""
@@ -188,17 +153,214 @@ def handle_nit_upload():
             with progress_container:
                 create_progress_card("Processing NIT Document", 50, "Parsing Excel data...")
 
-            # Simulate work data parsing (in real implementation, use actual parser)
-            work_data = {
-                'work_name': 'Sample Tender Work - Enhanced Processing',
-                'nit_number': 'NIT/2024/ENHANCED/001',
-                'work_info': {
-                    'estimated_cost': 1000000.00,
-                    'earnest_money': 20000.00,
-                    'date': '15-08-2024',
-                    'time_of_completion': '90 days'
+            # Initialize ExcelParser and parse the uploaded file
+            parser = ExcelParser()
+            work_data = parser.parse_nit_excel(tmp_file_path)
+
+            # Clean up temporary file
+            os.unlink(tmp_file_path)
+
+            # Update progress
+            progress_container.empty() 
+            with progress_container:
+                create_progress_card("Processing NIT Document", 100, "Processing complete!")
+
+            if work_data:
+                # Store the work data in session state
+                st.session_state.current_work = {
+                    'work_info': {
+                        'work_name': work_data.get('work_name', 'Unknown Work'),
+                        'estimated_cost': work_data.get('estimated_cost', 0),
+                        'earnest_money': work_data.get('earnest_money', 0),
+                        'time_of_completion': work_data.get('time_completion', 'Not specified'),
+                        'nit_number': work_data.get('nit_number', ''),
+                        'nit_date': work_data.get('nit_date', ''),
+                        'receipt_date': work_data.get('receipt_date', ''),
+                        'opening_date': work_data.get('opening_date', '')
+                    },
+                    'works': work_data.get('works', [])
                 }
-            }
+                
+                # Enhanced success feedback with balloon celebration
+                show_celebration_message("NIT document processed successfully with enhanced UI!")
+                show_balloons()
+
+                # Enhanced information display
+                st.markdown("### 📋 Processed Work Information")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    create_metric_card(
+                        "Estimated Cost",
+                        f"₹{work_data.get('estimated_cost', 0):,.2f}",
+                        "Total project value",
+                        "💰"
+                    )
+
+                with col2:
+                    create_metric_card(
+                        "Earnest Money",
+                        f"₹{work_data.get('earnest_money', 0):,.2f}",
+                        "Required deposit",
+                        "🏦"
+                    )
+
+                with col3:
+                    create_metric_card(
+                        "Timeline",
+                        work_data.get('time_completion', 'Not specified'),
+                        "Project duration",
+                        "⏱️"
+                    )
+
+                # Enhanced work details
+                st.markdown("### 📝 Work Details")
+                
+                details_col1, details_col2 = st.columns(2)
+                
+                with details_col1:
+                    st.markdown(f"""
+                    <div style="
+                        background: linear-gradient(135deg, #f8f9fa, #ffffff);
+                        padding: 20px;
+                        border-radius: 12px;
+                        border-left: 4px solid #1f77b4;
+                        margin: 10px 0;
+                    ">
+                        <h4 style="margin: 0 0 15px 0; color: #2c3e50;">🏗️ Project Information</h4>
+                        <p><strong>Work Name:</strong> {work_data.get('work_name', 'Not specified')}</p>
+                        <p><strong>NIT Number:</strong> {work_data.get('nit_number', 'Not specified')}</p>
+                        <p><strong>NIT Date:</strong> {work_data.get('nit_date', 'Not specified')}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with details_col2:
+                    st.markdown(f"""
+                    <div style="
+                        background: linear-gradient(135deg, #f8f9fa, #ffffff);
+                        padding: 20px;
+                        border-radius: 12px;
+                        border-left: 4px solid #28a745;
+                        margin: 10px 0;
+                    ">
+                        <h4 style="margin: 0 0 15px 0; color: #2c3e50;">📅 Timeline Details</h4>
+                        <p><strong>Receipt Date:</strong> {work_data.get('receipt_date', 'Not specified')}</p>
+                        <p><strong>Opening Date:</strong> {work_data.get('opening_date', 'Not specified')}</p>
+                        <p><strong>Time for Completion:</strong> {work_data.get('time_completion', 'Not specified')}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            else:
+                create_status_indicator("error", "Failed to parse NIT document. Please check the file format.")
+
+        except Exception as e:
+            create_status_indicator("error", f"Error processing file: {str(e)}")
+            logging.error(f"Error processing NIT file: {e}")
+            
+            # Clean up temporary file if it exists
+            if 'tmp_file_path' in locals() and os.path.exists(tmp_file_path):
+                try:
+                    os.unlink(tmp_file_path)
+                except Exception as cleanup_error:
+                    logging.error(f"Error cleaning up temporary file: {cleanup_error}")
+        margin: 10px 0;
+        border-left: 4px solid #1f77b4;
+    ">
+        <h4 style="margin: 0; color: #2c3e50;">✨ Enhanced Features</h4>
+        <ul style="margin: 10px 0; padding-left: 20px; color: #6c757d;">
+            <li>Professional UI Design</li>
+            <li>Balloon Theme Integration</li>
+            <li>Enhanced Branding</li>
+            <li>Responsive Layout</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    operation = st.sidebar.radio(
+        "Select Operation:",
+        [
+            "📄 Upload NIT Document",
+            "👥 Manage Bidders", 
+            "📊 Generate Reports",
+            "📝 Generate Documents",
+            "🎨 UI Showcase"
+        ],
+        help="Choose your operation from the enhanced menu"
+    )
+
+    # Main content area with enhanced routing
+    if operation == "📄 Upload NIT Document":
+        handle_nit_upload()
+    elif operation == "👥 Manage Bidders":
+        handle_bidder_management()
+    elif operation == "📊 Generate Reports":
+        handle_report_generation()
+    elif operation == "📝 Generate Documents":
+        handle_document_generation()
+    elif operation == "🎨 UI Showcase":
+        handle_ui_showcase()
+
+    # Enhanced footer with professional branding
+    create_footer()
+
+def handle_nit_upload():
+    """Enhanced NIT document upload with professional UI."""
+    st.header("📄 Enhanced NIT Document Upload")
+
+    # Feature grid showcase
+    create_feature_grid()
+
+    create_info_card(
+        "Professional NIT Document Processing",
+        "Upload your Notice Inviting Tender (NIT) Excel file with our enhanced processing engine. "
+        "The system features improved date parsing, validation, and professional UI feedback. "
+        "Experience the new balloon theme celebrations upon successful uploads!",
+        "📄"
+    )
+
+    # Enhanced file uploader section
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        uploaded_file = st.file_uploader(
+            "Choose NIT Excel file",
+            type=['xlsx', 'xls'],
+            help="Upload the official NIT Excel document for enhanced processing"
+        )
+
+    with col2:
+        create_metric_card(
+            "Upload Status",
+            "Ready" if not uploaded_file else "Processing",
+            "Enhanced file processing engine active",
+            "📤"
+        )
+
+    if uploaded_file is not None:
+        # Progress indicator
+        progress_container = st.container()
+        
+        with progress_container:
+            create_progress_card("Processing NIT Document", 25, "Initializing enhanced parser...")
+            
+        try:
+            # Simulate enhanced processing with progress updates
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+                tmp_file.write(uploaded_file.getvalue())
+                tmp_file_path = tmp_file.name
+
+            # Update progress
+            progress_container.empty()
+            with progress_container:
+                create_progress_card("Processing NIT Document", 50, "Parsing Excel data...")
+
+            # Parse the uploaded Excel file using ExcelParser
+            parser = ExcelParser()
+            work_data = parser.parse_nit_excel(tmp_file_path)
+            
+            if not work_data:
+                raise ValueError("No valid work data found in the uploaded file")
 
             # Update progress
             progress_container.empty() 
@@ -2149,7 +2311,7 @@ def main():
         # Default view if no works are uploaded yet
         st.title("Tender Management System")
         st.info("Please upload an NIT document to get started.")
-        ui.render_nit_upload()
+        handle_nit_upload()
 
 if __name__ == "__main__":
     main()
