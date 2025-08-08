@@ -42,7 +42,7 @@ class ExcelParser:
             file_path (str): Path to the Excel file to parse
             
         Returns:
-            list: List of work dictionaries with parsed data
+            dict: Parsed NIT metadata and a list of works
             
         Raises:
             Exception: If there's an error parsing the Excel file
@@ -100,13 +100,18 @@ class ExcelParser:
                 for idx, row in work_df.iterrows():
                     try:
                         work_info = {
-                            'item_no': str(row.get('ITEM NO.', row.get('ITEM NO', str(idx + 1)))),
-                            'work_name': str(row.get('NAME OF WORK', row.get('WORK NAME', f'Work {idx + 1}'))),
-                            'estimated_cost': float(str(row.get('ESTIMATED COST RS. IN LACS', '0')).replace(',', '')) * 100000,
-                            'g_schedule_amount': float(str(row.get('G-SCHEDULE AMOUNT RS', '0')).replace(',', '')),
-                            'time_completion': str(row.get('TIME OF COMPLETION IN MONTH', '6 months')),
-                            'earnest_money': float(str(row.get('EARNEST MONEY RS.', '0')).replace(',', ''))
+                            'item_no': str(row.get('ITEM NO.', row.get('ITEM NO', str(idx + 1))))
                         }
+                        # Work name
+                        work_info['work_name'] = str(row.get('NAME OF WORK', row.get('WORK NAME', f'Work {idx + 1}')))
+                        # Numeric fields
+                        def _num(val, default='0'):
+                            return float(str(row.get(val, default)).replace(',', ''))
+                        work_info['estimated_cost'] = _num('ESTIMATED COST RS. IN LACS') * 100000
+                        work_info['g_schedule_amount'] = _num('G-SCHEDULE AMOUNT RS')
+                        work_info['earnest_money'] = _num('EARNEST MONEY RS.')
+                        # Time completion
+                        work_info['time_completion'] = str(row.get('TIME OF COMPLETION IN MONTH', '6 months'))
                         
                         works.append({
                             'work_info': {
@@ -130,6 +135,7 @@ class ExcelParser:
                     raise ValueError(error_msg)
                     
                 logger.info(f"Successfully parsed {len(works)} work items from NIT document")
+<<<<<<< HEAD
                 
                 # Return a dictionary with works list and metadata to match reference app structure
                 if works:
@@ -156,6 +162,32 @@ class ExcelParser:
                     'earnest_money': 0,
                     'time_completion': '6 months'
                 }
+=======
+                # Adapt return shape to app expectations
+                first = works[0]['work_info'] if works else {}
+                result = {
+                    'work_name': first.get('work_name', 'Unknown Work'),
+                    'nit_number': nit_number,
+                    'nit_date': nit_date,
+                    'receipt_date': receipt_date,
+                    'opening_date': opening_date,
+                    'estimated_cost': first.get('estimated_cost', 0),
+                    'earnest_money': first.get('earnest_money', 0),
+                    'time_completion': first.get('time_completion', '6 months'),
+                    'total_works': len(works),
+                    'works': [
+                        {
+                            'name': w['work_info'].get('work_name', ''),
+                            'item_no': w['work_info'].get('item_no', ''),
+                            'estimated_cost': w['work_info'].get('estimated_cost', 0),
+                            'earnest_money': w['work_info'].get('earnest_money', 0),
+                            'time_completion': w['work_info'].get('time_completion', ''),
+                        }
+                        for w in works
+                    ]
+                }
+                return result
+>>>>>>> f401b3100abc9e85b6944ca24cd8c3ebc691e3ea
                 
             except Exception as work_data_error:
                 logger.error(f"Error processing work data: {str(work_data_error)}\n{traceback.format_exc()}")

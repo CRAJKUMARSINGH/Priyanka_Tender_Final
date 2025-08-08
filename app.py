@@ -6,8 +6,8 @@ from datetime import datetime
 import tempfile
 import logging
 
-# Import our custom modules
-from theme import set_custom_theme, apply_custom_css
+# Import our enhanced custom modules
+from theme import apply_custom_css, set_custom_theme, get_theme_colors, get_gradient_style
 from ui_components import (
     custom_header, custom_footer, show_balloons, create_info_card, 
     create_header, create_footer, create_success_message, 
@@ -25,6 +25,7 @@ from work_order_generator import WorkOrderGenerator
 from scrutiny_sheet_generator import ScrutinySheetGenerator
 from date_utils import DateUtils
 from pdf_generator import PDFGenerator
+from latex_generator import LaTeXGenerator
 
 # Configure logging
 logging.basicConfig(
