@@ -52,7 +52,7 @@ class LatexPDFGenerator:
         
         if bidders and isinstance(bidders, list):
             rows = [
-                f"{i+1} & {bidder.get('name', 'Unknown')} & {bidder.get('estimated_cost', 0):,.2f} & {bidder.get('percentage', 0):.2f}\% & {bidder.get('bid_amount', 0):,.2f} \\\\"
+                f"{i+1} & {bidder.get('name', 'Unknown')} & {bidder.get('estimated_cost', 0):,.2f} & {bidder.get('percentage', 0):.2f}\\% & {bidder.get('bid_amount', 0):,.2f} \\\\"
                 for i, bidder in enumerate(bidders)
             ]
             variables['BIDDER_TABLE_ROWS'] = '\n'.join(rows)
@@ -67,9 +67,11 @@ class LatexPDFGenerator:
             html_content = pypandoc.convert_text(
                 latex_content, 'html', format='latex', extra_args=['--standalone', '--mathjax']
             )
-            with open('debug_output.html', 'w', encoding='utf-8') as f:
-                f.write(html_content)
-            self.logger.info("Saved debug HTML to debug_output.html")
+            # Only write debug HTML if explicitly enabled
+            if os.getenv('LATEX_DEBUG') == '1':
+                with open('debug_output.html', 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                self.logger.info("Saved debug HTML to debug_output.html")
             return html_content
         except Exception as e:
             self.logger.error(f"Error converting LaTeX to HTML: {str(e)}")

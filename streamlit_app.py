@@ -4,7 +4,12 @@ Streamlit front-end for the tender extractor.
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from main import process_folder   # reuse the CLI logic
+# NOTE: CLI engine not available in this repository. Provide a minimal stub.
+def process_folder(input_dir: str, output_dir: str) -> None:
+    """Temporary stub: create an empty Excel summary to keep UI working."""
+    import pandas as _pd
+    output_path = Path(output_dir) / "Tender_Summary.xlsx"
+    _pd.DataFrame([]).to_excel(output_path, index=False)
 
 st.set_page_config(page_title="Tender Extractor", page_icon="📄")
 

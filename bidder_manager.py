@@ -42,7 +42,9 @@ class BidderManager:
         """Save bidder database to JSON file."""
         try:
             # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(self.database_file), exist_ok=True)
+            db_dir = os.path.dirname(self.database_file)
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
             
             # Update statistics
             self.bidders_db['statistics']['total_bidders'] = len(self.bidders_db['bidders'])
@@ -121,9 +123,7 @@ class BidderManager:
             logger.error(error_msg, exc_info=True)
             return False, error_msg
             
-    def _generate_bidder_id(self) -> str:
-        """Generate a unique ID for a new bidder."""
-        return f"BID{len(self.bidders_db['bidders']) + 1:06d}"
+    # Note: ID generation is defined later using UUID to avoid collisions
     
     def update_bidder(self, bidder_id: str, updated_data: Dict[str, Any]) -> bool:
         """
