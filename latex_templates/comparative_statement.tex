@@ -1,0 +1,36 @@
+\documentclass{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\begin{document}
+
+\begin{center}
+\textbf{Comparative Statement of Tenders}\\
+\vspace{0.3cm}
+\textbf{Name of Work:} {WORK_NAME}\\
+\textbf{NIT No.:} {NIT_NUMBER} \quad \textbf{Date:} {NIT_DATE}
+\end{center}
+
+\vspace{0.5cm}
+\noindent
+Estimated Cost: Rs. {ESTIMATED_COST} \\ 
+Earnest Money: Rs. {EARNEST_MONEY} \\ 
+Time for Completion: {TIME_COMPLETION} \\ 
+Tender Receipt Date: {RECEIPT_DATE} \\ 
+\vspace{0.5cm}
+
+\noindent
+\textbf{Lowest Bidder:} {L1_BIDDER_NAME} \quad {L1_PERCENTAGE} \quad Rs. {L1_BID_AMOUNT}\\
+\vspace{0.5cm}
+
+\begin{tabular}{|c|l|r|r|r|}
+\hline
+S.No & Bidder Name & Estimated Cost (Rs.) & Quoted % & Quoted Amount (Rs.) \\
+\hline
+{BIDDER_TABLE_ROWS}
+\hline
+\end{tabular}
+
+\vfill
+\noindent Generated on: {CURRENT_DATE}
+
+\end{document}
