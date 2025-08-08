@@ -33,56 +33,56 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Page configuration with enhanced metadata
+# Page configuration (aligned with reference)
 st.set_page_config(
-    page_title="PWD Electric Division Tender Processing System",
-    page_icon="⚡",
+    page_title="Tender Processing System",
+    page_icon="🏗️",
     layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': 'https://example.com/support',
-        'Report a bug': 'mailto:support@example.com',
-        'About': "PWD Electric Division Tender Processing System v2.0"
-    }
+    initial_sidebar_state="expanded"
 )
 
-# Apply enhanced custom styling and theme
-set_custom_theme()
+# Apply custom styling
 apply_custom_css()
 
 def main():
-    """
-    Enhanced main application function with professional UI and balloon themes.
-    Aligned with reference PWD Electric Division Tender Processing System.
-    """
-    # Initialize session state
-    initialize_session_state()
+    """Main application function."""
     
-    # Create enhanced sidebar
-    create_enhanced_sidebar()
+    # Create header
+    create_header()
+    
+    # Initialize session state
+    if 'current_work' not in st.session_state:
+        st.session_state.current_work = None
+    if 'bidders' not in st.session_state:
+        st.session_state.bidders = []
+    if 'bidder_manager' not in st.session_state:
+        st.session_state.bidder_manager = BidderManager()
+    
+    # Sidebar navigation
+    st.sidebar.title("📋 Navigation")
+    
+    operation = st.sidebar.radio(
+        "Select Operation:",
+        [
+            "📄 Upload NIT Document", 
+            "👥 Manage Bidders", 
+            "📊 Generate Reports",
+            "📝 Generate Documents"
+        ]
+    )
     
     # Main content area
-    st.title("PWD Electric Division Tender Processing System")
+    if operation == "📄 Upload NIT Document":
+        handle_nit_upload()
+    elif operation == "👥 Manage Bidders":
+        handle_bidder_management()
+    elif operation == "📊 Generate Reports":
+        handle_report_generation()
+    elif operation == "📝 Generate Documents":
+        handle_document_generation()
     
-    # Show welcome message on first run
-    if 'initialized' not in st.session_state:
-        st.balloons()
-        st.session_state.initialized = True
-        
-    # Main application logic
-    if st.session_state.current_work:
-        display_enhanced_work_info(st.session_state.current_work)
-        
-        # Handle different sections based on current view
-        if st.session_state.current_view == "bidder_management":
-            handle_enhanced_bidder_management()
-        elif st.session_state.current_view == "report_generation":
-            handle_enhanced_report_generation()
-        elif st.session_state.current_view == "document_generation":
-            handle_enhanced_document_generation()
-    else:
-        # Show NIT upload interface if no work is loaded
-        handle_enhanced_nit_upload()
+    # Create footer
+    create_footer()
 
 
 def initialize_session_state():
@@ -666,70 +666,40 @@ def handle_nit_upload():
             os.unlink(tmp_file_path)
             
             if work_data:
-                # Prepare work_info for consistency
-                work_info = {
-                    'work_name': work_data.get('work_name', 'Unknown Work'),
-                    'nit_number': work_data.get('nit_number', 'Unknown NIT'),
+                # Ensure reference-style 'work_info' compatibility for downstream steps
+                work_data['work_info'] = {
                     'estimated_cost': float(str(work_data.get('estimated_cost', 0)).replace(',', '')),
                     'earnest_money': float(str(work_data.get('earnest_money', 0)).replace(',', '')),
-                    'time_completion': work_data.get('time_completion', '6 months'),
-                    'nit_date': work_data.get('nit_date', 'Not found'),
-                    'receipt_date': work_data.get('receipt_date', 'Not found'),
-                    'opening_date': work_data.get('opening_date', 'Not found')
+                    'time_of_completion': work_data.get('time_completion', ''),
+                    'date': work_data.get('nit_date', '')
                 }
                 
-                if work_data.get('works') and len(work_data['works']) > 0:
-                    first_work = work_data['works'][0]
-                    work_info.update({
-                        'work_name': first_work.get('name', work_info['work_name']),
-                        'item_no': first_work.get('item_no', '1'),
-                        'estimated_cost': float(str(first_work.get('estimated_cost', work_info['estimated_cost'])).replace(',', '')),
-                        'earnest_money': float(str(first_work.get('earnest_money', work_info['earnest_money'])).replace(',', '')),
-                        'time_completion': first_work.get('time_completion', work_info['time_completion'])
-                    })
-                
-                work_data['work_info'] = work_info
                 st.session_state.current_work = work_data
                 st.success("✅ NIT document uploaded and parsed successfully!")
                 
-                # Display parsed information
+                # Display parsed information (reference-style)
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    st.subheader("📋 NIT Information")
-                    st.write(f"**Work Package:** {work_data['work_name']}")
+                    st.subheader("📋 Work Information")
+                    st.write(f"**Work Name:** {work_data['work_name']}")
                     st.write(f"**NIT Number:** {work_data['nit_number']}")
-                    st.write(f"**Total Works:** {work_data.get('total_works', 1)}")
-                    st.write(f"**Total Estimated Cost:** ₹{work_info['estimated_cost']:,.2f}")
-                    st.write(f"**Total Earnest Money:** ₹{work_info['earnest_money']:,.2f}")
+                    st.write(f"**Estimated Cost:** ₹{work_data['work_info']['estimated_cost']:,.2f}")
+                    st.write(f"**Earnest Money:** ₹{work_data['work_info']['earnest_money']}")
                 
                 with col2:
                     st.subheader("📅 Timeline Information")
-                    st.write(f"**NIT Date:** {work_info.get('nit_date', 'Not found')}")
-                    st.write(f"**Receipt Date:** {work_info.get('receipt_date', 'Not found')}")
-                    st.write(f"**Opening Date:** {work_info.get('opening_date', 'Not found')}")
-                    st.write(f"**Max Completion Time:** {work_info.get('time_completion', 6)} months")
+                    st.write(f"**Date:** {work_data['work_info']['date']}")
+                    st.write(f"**Time of Completion:** {work_data['work_info']['time_of_completion']}")
+                    
+                    # Validate and display parsed date (use instance methods)
+                    parsed_date = DateUtils().parse_date(work_data['work_info']['date'])
+                    if parsed_date:
+                        st.write(f"**Parsed Date:** {DateUtils().format_display_date(parsed_date)}")
+                    else:
+                        st.warning("⚠️ Date format not recognized. Please verify the date in the Excel file.")
                 
-                if work_data.get('works') and len(work_data['works']) > 1:
-                    st.subheader("📋 Individual Works Details")
-                    works_df = pd.DataFrame(work_data['works'])
-                    works_df['estimated_cost_display'] = works_df['estimated_cost'].apply(lambda x: f"₹{x:,.0f}")
-                    works_df['earnest_money_display'] = works_df['earnest_money'].apply(lambda x: f"₹{x:,.0f}")
-                    display_df = works_df[['item_no', 'name', 'estimated_cost_display', 'time_completion', 'earnest_money_display']]
-                    display_df.columns = ['Item No.', 'Work Name', 'Estimated Cost', 'Time (Months)', 'Earnest Money']
-                    st.dataframe(display_df, use_container_width=True)
-                    st.info(f"💡 This NIT contains {len(work_data['works'])} individual works. Go to 'Manage Bidders' to select a specific work for bidding.")
-                elif work_data.get('works') and len(work_data['works']) == 1:
-                    st.subheader("📋 Work Details")
-                    work = work_data['works'][0]
-                    st.write(f"**Work Name:** {work['name']}")
-                    st.write(f"**Estimated Cost:** ₹{work['estimated_cost']:,.2f}")
-                    st.write(f"**Time of Completion:** {work['time_completion']} months")
-                    st.write(f"**Earnest Money:** ₹{work['earnest_money']:,.2f}")
-                    st.info("💡 Go to 'Manage Bidders' to add bidders for this work.")
-                    show_balloons()
-                else:
-                    st.error("❌ Failed to parse NIT document. Please check the file format.")
+                show_balloons()
             else:
                 st.error("❌ Failed to parse NIT document. Please check the file format.")
                 
@@ -738,317 +708,164 @@ def handle_nit_upload():
             logging.error(f"Error processing NIT file: {e}")
 
 def handle_bidder_management():
-    """Enhanced bidder management with professional UI and functionality."""
-    st.header("👥 Enhanced Bidder Management")
-
+    """Handle bidder management operations with original dropdown selection method."""
+    st.header("👥 Manage Bidders")
+    
     if st.session_state.current_work is None:
-        create_status_indicator("warning", "Please upload a NIT document first to enable bidder management.")
+        st.warning("⚠️ Please upload a NIT document first.")
         return
-
-    # Enhanced bidder management interface
-    create_info_card(
-        "Professional Bidder Database",
-        "Manage your bidder database with enhanced selection tools, real-time calculations, "
-        "and professional data presentation. Experience improved workflow with the new UI.",
-        "👥"
-    )
     
-    # Bidder database with enhanced professional data
-    bidder_database = {
-        "ABC Construction Ltd.": {
-            "address": "123 Business Street, Professional City",
-            "last_used": "2024-08-01",
-            "contact_person": "Mr. Rajesh Kumar",
-            "email": "rajesh.kumar@abcconstruction.com",
-            "phone": "+91 98765 43210",
-            "registration_number": "U45201MH2010PTC207532",
-            "pan_number": "AAECA1234A",
-            "gstin": "27AAECA1234A1Z5",
-            "average_rating": 4.5,
-            "projects_completed": 42,
-            "specialization": ["Road Construction", "Bridge Works", "Infrastructure"]
-        },
-        "XYZ Engineers Pvt. Ltd.": {
-            "address": "456 Industrial Area, Corporate Town",
-            "last_used": "2024-07-15",
-            "contact_person": "Ms. Priya Sharma",
-            "email": "priya.sharma@xyzengineers.com",
-            "phone": "+91 98765 12340",
-            "registration_number": "U74999MH2005PTC157759",
-            "pan_number": "AAECB5678B",
-            "gstin": "27AAECB5678B1Z6",
-            "average_rating": 4.2,
-            "projects_completed": 28,
-            "specialization": ["Structural Engineering", "Project Management"]
-        },
-        "Professional Builders Co.": {
-            "address": "789 Commercial Complex, Business District",
-            "last_used": "2024-08-05",
-            "contact_person": "Mr. Amit Patel",
-            "email": "amit.patel@probuilders.co.in",
-            "phone": "+91 98765 98765",
-            "registration_number": "U45400MH2007PTC172345",
-            "pan_number": "AAECC9012C",
-            "gstin": "27AAECC9012C1Z7",
-            "average_rating": 4.7,
-            "projects_completed": 65,
-            "specialization": ["Commercial Construction", "Interior Design"]
-        },
-        "InfraTech Solutions": {
-            "address": "101 Tech Park, IT Hub",
-            "last_used": "2024-07-28",
-            "contact_person": "Mr. Sanjay Verma",
-            "email": "sanjay.verma@infratech.in",
-        },
-        "Premier Infrastructure": {
-            "address": "2020 Business Park, Downtown",
-            "last_used": "2024-08-02"
-        },
-        "Global Engineering Solutions": {
-            "address": "3030 Tech Park, Innovation District",
-            "last_used": "2024-07-25"
-        },
-        "Metro Builders & Developers": {
-            "address": "4040 Urban Center, City Plaza",
-            "last_used": "2024-07-30"
-        },
-        "Summit Constructions": {
-            "address": "5050 Hilltop Road, Uptown",
-            "last_used": "2024-08-03"
-        },
-        "Pinnacle Infrastructure": {
-            "address": "6060 Summit Avenue, Business Hub",
-            "last_used": "2024-07-28"
-        },
-        "Apex Engineering Works": {
-            "address": "7070 Industrial Zone, Sector 45",
-            "last_used": "2024-08-04"
-        }
-    }
+    # Load bidder database
+    bidder_database = {}
+    try:
+        with open('bidder_database.json', 'r', encoding='utf-8') as f:
+            bidder_database = json.load(f)
+    except Exception as e:
+        st.error(f"❌ Error loading bidder database: {str(e)}")
+        return
     
+    # Get list of available bidders
     available_bidders = list(bidder_database.keys())
+    st.info(f"📋 Available bidders in database: {len(available_bidders)}")
     
-    # Enhanced bidder statistics
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        create_metric_card(
-            "Available Bidders",
-            str(len(available_bidders)),
-            "In database",
-            "👥"
-        )
-    
-    with col2:
-        create_metric_card(
-            "Selected Bidders", 
-            str(len(st.session_state.bidders)),
-            "Currently active",
-            "✅"
-        )
-    
-    with col3:
-        create_metric_card(
-            "Processing Status",
-            "Enhanced",
-            "UI version 2.0",
-            "🚀"
-        )
-    
-    # Enhanced bidder selection interface
-    st.markdown("### 🎯 Enhanced Bidder Selection")
-    
-    num_bidders = st.slider(
-        "Select number of participating bidders:",
-        min_value=1,
-        max_value=10,
-        value=min(3, len(available_bidders)),
-        help="Choose how many bidders participated in this tender"
+    # Step 1: Select number of bidders
+    st.subheader("📊 Step 1: Select Number of Bidders")
+    num_bidders = st.number_input(
+        "How many bidders participated?", 
+        min_value=1, 
+        max_value=20, 
+        value=3,
+        help="Select the number of bidders who submitted tenders"
     )
     
-    # Enhanced bidder input interface
+    # Step 2: Create input windows for each bidder
     if num_bidders:
-        st.markdown("### 📝 Bidder Details Entry")
+        st.subheader("👥 Step 2: Select Bidders and Enter Percentages")
+        
+        # Initialize bidder inputs in session state
+        if 'bidder_inputs' not in st.session_state:
+            st.session_state.bidder_inputs = {}
         
         bidder_data_list = []
         all_valid = True
         
-        # Get bidders that haven't been selected yet
-        selected_bidder_names = [b['name'] for b in st.session_state.bidders]
-        available_for_selection = [b for b in available_bidders if b not in selected_bidder_names]
-        
         for i in range(num_bidders):
-            with st.expander(f"🏢 Bidder {i+1} Details", expanded=True):
-                col1, col2 = st.columns([2, 1])
+            st.markdown(f"### Bidder {i+1}")
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                # Dropdown to select bidder from database
+                selected_bidder = st.selectbox(
+                    f"Select Bidder {i+1}:",
+                    options=[""] + available_bidders,
+                    key=f"bidder_select_{i}",
+                    help="Choose from registered bidders"
+                )
                 
-                with col1:
-                    # If we're editing existing bidders, show them first
-                    current_options = []
-                    if i < len(st.session_state.bidders):
-                        current_bidder = st.session_state.bidders[i]
-                        current_options = [current_bidder['name']]
-                    
-                    selected_bidder = st.selectbox(
-                        f"Select Bidder {i+1}:",
-                        options=current_options + [""] + [b for b in available_for_selection if b not in current_options],
-                        key=f"enhanced_bidder_select_{i}",
-                        help="Choose from the enhanced bidder database"
-                    )
-                    
-                    if selected_bidder and selected_bidder in bidder_database:
-                        st.info(f"📍 **Address:** {bidder_database[selected_bidder]['address']}")
-                        st.success(f"🗓️ **Last Used:** {bidder_database[selected_bidder]['last_used']}")
-                
-                with col2:
-                    # If editing existing bidder, show their current percentage
-                    default_percentage = ""
-                    if i < len(st.session_state.bidders):
-                        default_percentage = f"{st.session_state.bidders[i]['percentage']:+.2f}"
+                # Show bidder address if selected
+                if selected_bidder and selected_bidder in bidder_database:
+                    st.caption(f"📍 Address: {bidder_database[selected_bidder]['address']}")
+            
+            with col2:
+                # Percentage input
+                percentage_str = st.text_input(
+                    f"Percentage (%):",
+                    placeholder="e.g., -5.50",
+                    key=f"percentage_{i}",
+                    help="Enter % above (+) or below (-) estimate"
+                )
+            
+            # Validate and calculate bid amount
+            if selected_bidder and percentage_str:
+                try:
+                    percentage = float(percentage_str)
+                    if -99.99 <= percentage <= 99.99:
+                        processor = TenderProcessor()
+                        bid_amount = processor.calculate_bid_amount(
+                            st.session_state.current_work['work_info']['estimated_cost'],
+                            percentage
+                        )
                         
-                    percentage_str = st.text_input(
-                        f"Percentage (%), e.g. -5.50:",
-                        value=default_percentage,
-                        key=f"enhanced_percentage_{i}",
-                        help="Enter % above (+) or below (-) estimate"
-                    )
-                    
-                    # Enhanced validation and calculation
-                    if selected_bidder and percentage_str:
-                        try:
-                            percentage = float(percentage_str)
-                            if -99.99 <= percentage <= 99.99:
-                                # Handle different work data structures
-                                work_data = st.session_state.get('current_work', {})
-                                work_info = work_data.get('work_info', work_data)  # Fallback to work_data if work_info doesn't exist
-                                estimated_cost = work_info.get('estimated_cost', 0)  # Default to 0 if not found
-                                
-                                if estimated_cost == 0:
-                                    create_status_indicator("warning", "Warning: Estimated cost not found. Using 0 as default.")
-                                    
-                                bid_amount = estimated_cost * (1 + percentage / 100)
-                                
-                                # Enhanced bid amount display
-                                st.markdown(f"""
-                                <div style="
-                                    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-                                    padding: 15px;
-                                    border-radius: 8px;
-                                    border-left: 4px solid #28a745;
-                                    margin: 10px 0;
-                                ">
-                                    <h4 style="margin: 0; color: #155724;">💰 Calculated Bid Amount</h4>
-                                    <p style="margin: 5px 0; font-size: 1.2rem; font-weight: bold; color: #155724;">
-                                        ₹{bid_amount:,.2f}
-                                    </p>
-                                    <p style="margin: 0; color: #155724; font-size: 0.9rem;">
-                                        ({percentage:+.2f}% from estimate)
-                                    </p>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                
-                                bidder_data = {
-                                    'name': selected_bidder,
-                                    'address': bidder_database[selected_bidder]['address'],
-                                    'percentage': percentage,
-                                    'bid_amount': bid_amount,
-                                    'earnest_money': st.session_state.current_work['work_info'].get('earnest_money', 0),
-                                    'date_added': datetime.now().strftime("%Y-%m-%d")
-                                }
-                                bidder_data_list.append(bidder_data)
-                            else:
-                                create_status_indicator("error", "Percentage must be between -99.99% and +99.99%")
-                                all_valid = False
-                        except ValueError:
-                            create_status_indicator("error", "Please enter a valid percentage value")
-                            all_valid = False
-                    elif selected_bidder or percentage_str:
+                        # Display calculated bid amount
+                        st.success(f"💰 Calculated Bid Amount: ₹{bid_amount:,.2f}")
+                        
+                        bidder_data = {
+                            'name': selected_bidder,
+                            'address': bidder_database[selected_bidder]['address'],
+                            'percentage': percentage,
+                            'bid_amount': bid_amount,
+                            'earnest_money': st.session_state.current_work['work_info']['earnest_money'],
+                            'date_added': DateUtils().get_current_date()
+                        }
+                        bidder_data_list.append(bidder_data)
+                    else:
+                        st.error("❌ Percentage must be between -99.99% and +99.99%")
                         all_valid = False
+                except ValueError:
+                    st.error("❌ Please enter a valid percentage value")
+                    all_valid = False
+            elif selected_bidder or percentage_str:
+                all_valid = False
+            
+            st.markdown("---")
         
-        # Enhanced action buttons
-        st.markdown("### 🎯 Actions")
-        col1, col2, col3 = st.columns(3)
-        
+        # Step 3: Add all bidders
+        col1, col2 = st.columns(2)
         with col1:
-            if st.button("✅ Save All Bidders", type="primary", 
-                        disabled=not all_valid or len(bidder_data_list) != num_bidders,
-                        help="Save all bidders with their bid amounts"):
+            if st.button("✅ Add All Bidders", type="primary", disabled=not all_valid or len(bidder_data_list) != num_bidders):
                 st.session_state.bidders = bidder_data_list
-                show_celebration_message(f"Successfully saved {len(bidder_data_list)} bidders!")
-                show_balloons()
+                
+                # Update bidder database with last used dates
+                for bidder_data in bidder_data_list:
+                    if bidder_data['name'] in bidder_database:
+                        bidder_database[bidder_data['name']]['last_used'] = DateUtils().get_current_date()
+                
+                # Save updated database
+                try:
+                    with open('bidder_database.json', 'w', encoding='utf-8') as f:
+                        json.dump(bidder_database, f, indent=2, ensure_ascii=False)
+                except Exception as e:
+                    st.warning(f"⚠️ Could not update bidder database: {str(e)}")
+                
+                st.success(f"✅ Added {len(bidder_data_list)} bidders successfully!")
                 st.rerun()
         
         with col2:
-            if st.button("🔄 Reset All Bidders", type="secondary",
-                        help="Clear all bidders and start over"):
+            if st.button("🔄 Reset All", type="secondary"):
                 st.session_state.bidders = []
-                create_status_indicator("info", "All bidders have been reset")
+                if 'bidder_inputs' in st.session_state:
+                    del st.session_state.bidder_inputs
+                st.success("✅ Reset all bidder selections")
                 st.rerun()
-        
-        with col3:
-            if st.button("📋 Copy Bidder List", type="secondary",
-                        help="Copy the current bidder list to clipboard"):
-                if st.session_state.bidders:
-                    bidder_text = "\n".join([f"{i+1}. {b['name']}: ₹{b['bid_amount']:,.2f} ({b['percentage']:+.2f}%)" 
-                                           for i, b in enumerate(st.session_state.bidders)])
-                    st.session_state.clipboard = bidder_text
-                    create_status_indicator("success", "Bidder list copied to clipboard!")
-                else:
-                    create_status_indicator("warning", "No bidders to copy")
     
-    # Display current bidders in an enhanced table
+    # Display current bidders
     if st.session_state.bidders:
-        st.markdown("### 📊 Current Bidder Summary")
+        st.subheader("📊 Current Selected Bidders")
         
-        # Sort bidders by bid amount (ascending)
-        sorted_bidders = sorted(st.session_state.bidders, key=lambda x: x['bid_amount'])
-        
-        # Create enhanced DataFrame with rank, bidder info, and bid details
+        # Create DataFrame for display
         df_data = []
-        for i, bidder in enumerate(sorted_bidders, 1):
+        for i, bidder in enumerate(st.session_state.bidders):
             df_data.append({
-                'Rank': i,
+                'S.No.': i + 1,
                 'Bidder Name': bidder['name'],
                 'Address': bidder.get('address', 'N/A'),
-                'Percentage': f"{bidder['percentage']:+.2f}%",
-                'Bid Amount': f"₹{bidder['bid_amount']:,.2f}",
-                'Status': '✅ Active' if i == 1 else 'Active',
-                '_bid_amount': bidder['bid_amount']  # For sorting
+                'Percentage (%)': f"{bidder['percentage']:+.2f}%",
+                'Bid Amount (₹)': f"₹{bidder['bid_amount']:,.2f}",
+                'Earnest Money (₹)': f"₹{bidder['earnest_money']}"
             })
         
-        # Create and display the DataFrame
-        if df_data:
-
-            df = pd.DataFrame(df_data)
-            st.dataframe(df, use_container_width=True)
-
-            # Enhanced L1 bidder display
-            sorted_bidders = sorted(st.session_state.bidders, key=lambda x: x.get('bid_amount', float('inf')))
-            if sorted_bidders:
-                l1_bidder = sorted_bidders[0]
-                
-                st.markdown(f"""
-                <div style="
-                    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-                    padding: 20px;
-                    border-radius: 12px;
-                    border-left: 4px solid #28a745;
-                    margin: 20px 0;
-                    text-align: center;
-                ">
-                    <h3 style="margin: 0; color: #155724;">🥇 L1 (Lowest) Bidder</h3>
-                    <h4 style="margin: 10px 0; color: #155724;">{l1_bidder.get('name', 'N/A')}</h4>
-                    <p style="margin: 5px 0; font-size: 1.2rem; font-weight: bold; color: #155724;">
-                        ₹{l1_bidder.get('bid_amount', 0):,.2f} ({l1_bidder.get('percentage', 0):+.2f}%)
-                    </p>
-                    <p style="margin: 0; color: #155724;">Enhanced calculation with professional accuracy</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Clear all bidders option
-                if st.button("🗑️ Clear All Bidders", type="secondary"):
-                    st.session_state.bidders = []
-                    st.success("✅ Cleared all bidders")
-                    st.rerun()
+        df = pd.DataFrame(df_data)
+        st.dataframe(df, use_container_width=True)
+        
+        # Show L1 bidder
+        sorted_bidders = sorted(st.session_state.bidders, key=lambda x: x['bid_amount'])
+        l1_bidder = sorted_bidders[0]
+        st.success(f"🥇 L1 (Lowest) Bidder: {l1_bidder['name']} - ₹{l1_bidder['bid_amount']:,.2f} ({l1_bidder['percentage']:+.2f}%)")
+        
+        # Clear all bidders option
+        if st.button("🗑️ Clear All Bidders", type="secondary"):
+            st.session_state.bidders = []
+            st.success("✅ Cleared all bidders")
             st.rerun()
 
 def handle_report_generation():
@@ -2300,7 +2117,7 @@ def handle_ui_showcase():
     st.markdown("### 🏆 Professional Feature Grid")
     create_feature_grid()
 
-def main():
+def legacy_main():
     # Apply custom CSS and initialize
     apply_custom_css()
     initialize_session_state()
