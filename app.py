@@ -26,6 +26,9 @@ from scrutiny_sheet_generator import ScrutinySheetGenerator
 from date_utils import DateUtils
 from pdf_generator import PDFGenerator
 from latex_generator import LaTeXGenerator
+# Add imports for PDF and ZIP generation
+from latex_pdf_generator import LatexPDFGenerator
+from zip_generator import ZipGenerator
 
 # Configure logging
 logging.basicConfig(
@@ -2152,6 +2155,7 @@ def handle_document_generation_latex():
             with st.spinner("Generating documents and creating ZIP package..."):
                 documents = latex_gen.generate_bulk_pdfs(work_data, valid_bidders)
                 if documents:
+                    zip_gen = ZipGenerator()
                     zip_buffer = zip_gen.create_zip(documents)
                     st.download_button(
                         label="📦 Download Complete Package (ZIP)",

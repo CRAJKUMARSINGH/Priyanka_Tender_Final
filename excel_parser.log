@@ -48,3 +48,24 @@
 2025-08-08 20:02:53,302 - excel_parser - INFO - Available columns: ['ITEM NO.', 'NAME OF WORK', 'ESTIMATED COST RS. IN LACS', 'G-SCHEDULE AMOUNT RS', 'TIME OF COMPLETION IN MONTH', 'EARNEST MONEY RS.']
 2025-08-08 20:02:53,302 - excel_parser - INFO - Successfully parsed 1 work items from NIT document
 2025-08-08 20:02:53,308 - root - ERROR - Error processing NIT file: 'name'
+2025-08-08 19:25:25,742 - pypandoc - INFO - Maybe try:
+
+    sudo apt-get install pandoc
+
+2025-08-08 19:25:25,742 - pypandoc - INFO - See http://johnmacfarlane.net/pandoc/installing.html
+for installation options
+
+2025-08-08 19:25:25,742 - pypandoc - INFO - ---------------------------------------------------------------
+
+
+2025-08-08 19:25:26,225 - pypandoc - INFO - Downloading pandoc from https://github.com/jgm/pandoc/releases/download/3.7.0.2/pandoc-3.7.0.2-1-amd64.deb ...
+2025-08-08 19:25:26,383 - pypandoc - INFO - Unpacking pandoc-3.7.0.2-1-amd64.deb to tempfolder...
+2025-08-08 19:25:27,148 - pypandoc - INFO - Copying pandoc to /home/ubuntu/bin ...
+2025-08-08 19:25:27,353 - pypandoc - INFO - Making /home/ubuntu/bin/pandoc executable...
+2025-08-08 19:25:27,353 - pypandoc - INFO - Copying copyright to /home/ubuntu/bin ...
+2025-08-08 19:25:27,370 - latex_pdf_generator - INFO - Downloaded local Pandoc binary for conversions
+2025-08-08 19:26:26,561 - latex_pdf_generator - ERROR - Error converting LaTeX to HTML: Pandoc died with exitcode "64" during conversion: Error at (line 47, column 1):
+unexpected \end
+\end{center}
+^
+
