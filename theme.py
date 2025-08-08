@@ -457,3 +457,11 @@ def apply_component_theme(component_type: str = 'default'):
         """
 
     return ""
+
+def set_custom_theme():
+    """Apply Streamlit page theme settings if needed (placeholder to satisfy imports)."""
+    # This function can be expanded to call st.set_page_config theme in future
+    return None
+
+# Backward-compatible alias expected by app.py
+get_gradient_style = get_gradient_styles
