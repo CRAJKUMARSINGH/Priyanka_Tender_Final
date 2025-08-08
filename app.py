@@ -26,6 +26,11 @@ from scrutiny_sheet_generator import ScrutinySheetGenerator
 from date_utils import DateUtils
 from pdf_generator import PDFGenerator
 from latex_generator import LaTeXGenerator
+# Add imports for PDF and ZIP generation
+from latex_pdf_generator import LatexPDFGenerator
+from zip_generator import ZipGenerator
+# Ensure module-level access to ExcelParser
+import excel_parser
 
 # Configure logging
 logging.basicConfig(
@@ -196,7 +201,7 @@ def handle_nit_upload():
                 create_progress_card("Processing NIT Document", 50, "Parsing Excel data...")
 
             # Initialize ExcelParser and parse the uploaded file
-            parser = ExcelParser()
+            parser = excel_parser.ExcelParser()
             work_data = parser.parse_nit_excel(tmp_file_path)
 
             # Clean up temporary file
@@ -390,7 +395,7 @@ def handle_nit_upload():
                 create_progress_card("Processing NIT Document", 50, "Parsing Excel data...")
 
             # Parse the uploaded Excel file using ExcelParser
-            parser = ExcelParser()
+            parser = excel_parser.ExcelParser()
             work_data = parser.parse_nit_excel(tmp_file_path)
             
             if not work_data:
@@ -659,7 +664,7 @@ def handle_nit_upload():
                 tmp_file_path = tmp_file.name
             
             # Parse Excel file
-            parser = ExcelParser()
+            parser = excel_parser.ExcelParser()
             work_data = parser.parse_nit_excel(tmp_file_path)
             
             # Clean up temporary file
@@ -1741,22 +1746,17 @@ def handle_document_generation_latex():
                         # Generate document using the appropriate method based on template
                         if doc_template == "comparative_statement":
                             # Use the existing method for comparative statement
-                            pdf_bytes = st.session_state.latex_gen.generate_comparative_statement_pdf(
-                                st.session_state.current_work,
-                                st.session_state.bidders
-                            )
-                            # Save to a temporary file for download
-                            import tempfile
-                            import os
-                            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                                tmp_file.write(pdf_bytes)
-                                pdf_path = tmp_file.name
-                            
-                            generated_results[doc_display] = {
-                                'template': doc_template,
-                                'pdf_path': pdf_path,
-                                'status': 'success'
-                            }
+                            try:
+                                pdf_bytes = st.session_state.latex_gen.generate_comparative_statement_pdf(
+                                    st.session_state.current_work,
+                                    st.session_state.bidders
+                                )
+                            except Exception as e:
+                                logging.error(f"LaTeX comparative generation failed: {e}; using fallback")
+                                pdf_bytes = PDFGenerator().generate_comparative_statement_pdf(
+                                    st.session_state.current_work,
+                                    st.session_state.bidders
+                                )
                         else:
                             # For other document types, use the template-based generation
                             tex_path, tex_content = st.session_state.latex_generator.generate_document(
@@ -1767,14 +1767,16 @@ def handle_document_generation_latex():
                             
                             pdf_path = None
                             if output_format in ["Both LaTeX & PDF", "PDF Only"]:
-                                pdf_path = st.session_state.latex_generator.compile_to_pdf(tex_path)
+                                try:
+                                    pdf_path = st.session_state.latex_generator.compile_to_pdf(tex_path)
+                                except Exception as e:
+                                    logging.error(f"LaTeX compile failed: {e}; continuing with available outputs")
                             
                             generated_results[doc_display] = {
                                 'template': doc_template,
+                                'status': 'success',
                                 'tex_path': tex_path,
-                                'pdf_path': pdf_path,
-                                'tex_content': tex_content,
-                                'status': 'success'
+                                'pdf_path': pdf_path
                             }
                             
                     except Exception as e:
@@ -1922,43 +1924,43 @@ def handle_document_generation_latex():
         if st.button(f"📝 Generate Letter of Acceptance"):
             try:
                 pdf_bytes = latex_gen.generate_letter_acceptance_pdf(work_data, l1_bidder)
-                st.download_button(
-                    label="📥 Download Letter of Acceptance",
-                    data=pdf_bytes,
-                    file_name=f"Letter_of_Acceptance_Work_{work_id}.pdf",
-                    mime="application/pdf"
-                )
             except Exception as e:
-                st.error(f"Error generating Letter of Acceptance: {str(e)}")
-                logging.error(f"Error in Letter of Acceptance generation: {e}")
+                logging.error(f"LaTeX LOA generation failed: {e}; using fallback")
+                pdf_bytes = PDFGenerator().generate_letter_of_acceptance_pdf(work_data, valid_bidders)
+            st.download_button(
+                label="📥 Download Letter of Acceptance",
+                data=pdf_bytes,
+                file_name=f"Letter_of_Acceptance_Work_{work_id}.pdf",
+                mime="application/pdf"
+            )
     
     with col2:
         if st.button(f"📋 Generate Work Order"):
             try:
                 pdf_bytes = latex_gen.generate_work_order_pdf(work_data, l1_bidder)
-                st.download_button(
-                    label="📥 Download Work Order",
-                    data=pdf_bytes,
-                    file_name=f"Work_Order_Work_{work_id}.pdf",
-                    mime="application/pdf"
-                )
             except Exception as e:
-                st.error(f"Error generating Work Order: {str(e)}")
-                logging.error(f"Error in Work Order generation: {e}")
+                logging.error(f"LaTeX Work Order generation failed: {e}; using fallback")
+                pdf_bytes = PDFGenerator().generate_work_order_pdf(work_data, valid_bidders)
+            st.download_button(
+                label="📥 Download Work Order",
+                data=pdf_bytes,
+                file_name=f"Work_Order_Work_{work_id}.pdf",
+                mime="application/pdf"
+            )
     
     with col3:
         if st.button(f"🔍 Generate Scrutiny Sheet"):
             try:
                 pdf_bytes = latex_gen.generate_scrutiny_sheet_pdf(work_data, valid_bidders)
-                st.download_button(
-                    label="📥 Download Scrutiny Sheet",
-                    data=pdf_bytes,
-                    file_name=f"Scrutiny_Sheet_Work_{work_id}.pdf",
-                    mime="application/pdf"
-                )
             except Exception as e:
-                st.error(f"Error generating Scrutiny Sheet: {str(e)}")
-                logging.error(f"Error in Scrutiny Sheet generation: {e}")
+                logging.error(f"LaTeX Scrutiny generation failed: {e}; using fallback")
+                pdf_bytes = PDFGenerator().generate_scrutiny_sheet_pdf(work_data, valid_bidders)
+            st.download_button(
+                label="📥 Download Scrutiny Sheet",
+                data=pdf_bytes,
+                file_name=f"Scrutiny_Sheet_Work_{work_id}.pdf",
+                mime="application/pdf"
+            )
     
     # ZIP generation section
     st.markdown("---")
@@ -1967,8 +1969,25 @@ def handle_document_generation_latex():
     if st.button(f"🚀 Generate & Download All Documents as ZIP"):
         try:
             with st.spinner("Generating documents and creating ZIP package..."):
-                documents = latex_gen.generate_bulk_pdfs(work_data, valid_bidders)
+                try:
+                    documents = latex_gen.generate_bulk_pdfs(work_data, valid_bidders)
+                except Exception as gen_err:
+                    logging.error(f"LaTeX PDF generation failed: {gen_err}. Falling back to ReportLab generator.")
+                    documents = {}
+                if not documents:
+                    try:
+                        pdf_gen_fallback = PDFGenerator()
+                        documents = {
+                            f'Comparative_Statement_Work_{work_id}.pdf': pdf_gen_fallback.generate_comparative_statement_pdf(work_data, valid_bidders),
+                            f'Letter_of_Acceptance_Work_{work_id}.pdf': pdf_gen_fallback.generate_letter_of_acceptance_pdf(work_data, valid_bidders),
+                            f'Work_Order_Work_{work_id}.pdf': pdf_gen_fallback.generate_work_order_pdf(work_data, valid_bidders),
+                            f'Scrutiny_Sheet_Work_{work_id}.pdf': pdf_gen_fallback.generate_scrutiny_sheet_pdf(work_data, valid_bidders),
+                        }
+                    except Exception as fb_err:
+                        logging.error(f"Fallback PDF generation failed: {fb_err}")
+                        documents = {}
                 if documents:
+                    zip_gen = ZipGenerator()
                     zip_buffer = zip_gen.create_zip(documents)
                     st.download_button(
                         label="📦 Download Complete Package (ZIP)",

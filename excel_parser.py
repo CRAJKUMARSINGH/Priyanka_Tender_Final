@@ -135,34 +135,7 @@ class ExcelParser:
                     raise ValueError(error_msg)
                     
                 logger.info(f"Successfully parsed {len(works)} work items from NIT document")
-<<<<<<< HEAD
                 
-                # Return a dictionary with works list and metadata to match reference app structure
-                if works:
-                    # Use first work as the main work, with works list included
-                    result = {
-                        'work_name': works[0]['work_info'].get('work_name', 'Unknown Work'),
-                        'nit_number': works[0]['work_info'].get('nit_number', 'Unknown NIT'),
-                        'nit_date': works[0]['work_info'].get('nit_date', ''),
-                        'receipt_date': works[0]['work_info'].get('receipt_date', ''),
-                        'opening_date': works[0]['work_info'].get('opening_date', ''),
-                        'works': works,  # Keep the full list of works
-                        'estimated_cost': works[0]['work_info'].get('estimated_cost', 0),
-                        'earnest_money': works[0]['work_info'].get('earnest_money', 0),
-                        'time_completion': works[0]['work_info'].get('time_completion', '6 months')
-                    }
-                    return result
-                
-                # Fallback if no works were found
-                return {
-                    'work_name': 'Unknown Work',
-                    'nit_number': 'Unknown NIT',
-                    'works': [],
-                    'estimated_cost': 0,
-                    'earnest_money': 0,
-                    'time_completion': '6 months'
-                }
-=======
                 # Adapt return shape to app expectations
                 first = works[0]['work_info'] if works else {}
                 result = {
@@ -187,7 +160,6 @@ class ExcelParser:
                     ]
                 }
                 return result
->>>>>>> f401b3100abc9e85b6944ca24cd8c3ebc691e3ea
                 
             except Exception as work_data_error:
                 logger.error(f"Error processing work data: {str(work_data_error)}\n{traceback.format_exc()}")

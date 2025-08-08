@@ -5,12 +5,24 @@ import pypandoc
 import weasyprint
 from num2words import num2words
 from date_utils import DateUtils
+import re
+from string import Template
 
 class LatexPDFGenerator:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.date_utils = DateUtils()
         self.template_dir = os.path.join(os.path.dirname(__file__), 'latex_templates')
+        
+        # Ensure Pandoc is available for LaTeX->HTML conversion
+        try:
+            _ = pypandoc.get_pandoc_version()
+        except Exception:
+            try:
+                pypandoc.download_pandoc()
+                self.logger.info("Downloaded local Pandoc binary for conversions")
+            except Exception as pandoc_error:
+                self.logger.warning(f"Pandoc not available and download failed: {pandoc_error}")
         
     def _load_template(self, template_name):
         template_path = os.path.join(self.template_dir, template_name)
@@ -52,7 +64,7 @@ class LatexPDFGenerator:
         
         if bidders and isinstance(bidders, list):
             rows = [
-                f"{i+1} & {bidder.get('name', 'Unknown')} & {bidder.get('estimated_cost', 0):,.2f} & {bidder.get('percentage', 0):.2f}\\% & {bidder.get('bid_amount', 0):,.2f} \\\\"
+                f"{i+1} & {bidder.get('name', 'Unknown')} & {bidder.get('estimated_cost', 0):,.2f} & {bidder.get('percentage', 0):.2f}\\% & {bidder.get('bid_amount', 0):,.2f} \\\\" 
                 for i, bidder in enumerate(bidders)
             ]
             variables['BIDDER_TABLE_ROWS'] = '\n'.join(rows)
@@ -62,10 +74,27 @@ class LatexPDFGenerator:
         
         return variables
 
+    def _render_template(self, template_text: str, variables: dict) -> str:
+        placeholder_keys = (
+            'NIT_NUMBER|NIT_DATE|RECEIPT_DATE|OPENING_DATE|ITEM_NO|WORK_NAME|'
+            'ESTIMATED_COST|EARNEST_MONEY|TIME_COMPLETION|BIDDER_TABLE_ROWS|'
+            'L1_BIDDER_NAME|L1_BID_AMOUNT|L1_PERCENTAGE|L1_BID_AMOUNT_WORDS|'
+            'START_DATE|COMPLETION_DATE'
+        )
+        pattern = re.compile(r"\{(" + placeholder_keys + r")\}")
+        converted = pattern.sub(r"${\1}", template_text)
+        rendered = Template(converted).safe_substitute(variables)
+        # Basic sanity checks: matching \begin and \end blocks
+        begins = len(re.findall(r"\\begin\{[^}]+\}", rendered))
+        ends = len(re.findall(r"\\end\{[^}]+\}", rendered))
+        if begins != ends:
+            self.logger.warning(f"Rendered LaTeX begin/end mismatch: begin={begins}, end={ends}")
+        return rendered
+
     def convert_latex_to_html(self, latex_content):
         try:
             html_content = pypandoc.convert_text(
-                latex_content, 'html', format='latex', extra_args=['--standalone', '--mathjax']
+                latex_content, 'html', format='latex', extra_args=['--standalone', '--mathjax', '--quiet']
             )
             # Only write debug HTML if explicitly enabled
             if os.getenv('LATEX_DEBUG') == '1':
@@ -75,6 +104,7 @@ class LatexPDFGenerator:
             return html_content
         except Exception as e:
             self.logger.error(f"Error converting LaTeX to HTML: {str(e)}")
+            # Re-raise to trigger fallback at call sites
             raise
 
     def generate_pdf(self, html_content):
@@ -86,21 +116,21 @@ class LatexPDFGenerator:
             raise
 
     def generate_comparative_statement_pdf(self, work_data, bidders):
-        template = self._load_template('latex_code_for_comparative_statement.tex')
+        template = self._load_template('latex_code_for_comparative_statement.TeX')
         variables = self._prepare_common_variables(work_data, min(bidders, key=lambda x: x.get('bid_amount', float('inf'))) if bidders else None, bidders)
-        latex_content = template.format(**variables)
+        latex_content = self._render_template(template, variables)
         html_content = self.convert_latex_to_html(latex_content)
         return self.generate_pdf(html_content)
 
     def generate_letter_acceptance_pdf(self, work_data, l1_bidder):
         template = self._load_template('latex_code_for_letter_of_acceptance.tex')
         variables = self._prepare_common_variables(work_data, l1_bidder)
-        latex_content = template.format(**variables)
+        latex_content = self._render_template(template, variables)
         html_content = self.convert_latex_to_html(latex_content)
         return self.generate_pdf(html_content)
 
     def generate_work_order_pdf(self, work_data, l1_bidder):
-        template = self._load_template('latex_code_for_work_order.tex')
+        template = self._load_template('latex_code_for_work_order.TeX')
         variables = self._prepare_common_variables(work_data, l1_bidder)
         start_date = self.date_utils.add_days(self.date_utils.get_current_datetime(), 2)
         completion_date = self.date_utils.add_months(start_date, int(work_data['work_info'].get('time_completion', '6 months').split()[0]))
@@ -108,14 +138,14 @@ class LatexPDFGenerator:
             'START_DATE': self.date_utils.format_display_date(start_date),
             'COMPLETION_DATE': self.date_utils.format_display_date(completion_date)
         })
-        latex_content = template.format(**variables)
+        latex_content = self._render_template(template, variables)
         html_content = self.convert_latex_to_html(latex_content)
         return self.generate_pdf(html_content)
 
     def generate_scrutiny_sheet_pdf(self, work_data, bidders):
-        template = self._load_template('latex_code_for_scrutiny_sheet.tex')
+        template = self._load_template('latex_code_for_scrutiny_sheet.TeX')
         variables = self._prepare_common_variables(work_data, None, bidders)
-        latex_content = template.format(**variables)
+        latex_content = self._render_template(template, variables)
         html_content = self.convert_latex_to_html(latex_content)
         return self.generate_pdf(html_content)
 

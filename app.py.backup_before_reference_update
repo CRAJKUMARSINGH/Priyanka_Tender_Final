@@ -20,6 +20,9 @@ from ui_components import (
     show_balloons
 )
 
+# Add missing import for ExcelParser
+from excel_parser import ExcelParser
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
