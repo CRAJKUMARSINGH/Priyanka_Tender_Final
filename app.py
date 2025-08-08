@@ -29,6 +29,8 @@ from latex_generator import LaTeXGenerator
 # Add imports for PDF and ZIP generation
 from latex_pdf_generator import LatexPDFGenerator
 from zip_generator import ZipGenerator
+# Ensure module-level access to ExcelParser
+import excel_parser
 
 # Configure logging
 logging.basicConfig(
@@ -199,7 +201,7 @@ def handle_nit_upload():
                 create_progress_card("Processing NIT Document", 50, "Parsing Excel data...")
 
             # Initialize ExcelParser and parse the uploaded file
-            parser = ExcelParser()
+            parser = excel_parser.ExcelParser()
             work_data = parser.parse_nit_excel(tmp_file_path)
 
             # Clean up temporary file
@@ -393,7 +395,7 @@ def handle_nit_upload():
                 create_progress_card("Processing NIT Document", 50, "Parsing Excel data...")
 
             # Parse the uploaded Excel file using ExcelParser
-            parser = ExcelParser()
+            parser = excel_parser.ExcelParser()
             work_data = parser.parse_nit_excel(tmp_file_path)
             
             if not work_data:
@@ -662,7 +664,7 @@ def handle_nit_upload():
                 tmp_file_path = tmp_file.name
             
             # Parse Excel file
-            parser = ExcelParser()
+            parser = excel_parser.ExcelParser()
             work_data = parser.parse_nit_excel(tmp_file_path)
             
             # Clean up temporary file
