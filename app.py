@@ -6,45 +6,86 @@ from datetime import datetime
 import tempfile
 import logging
 
-# Import our enhanced custom modules
-from theme import apply_custom_css, get_theme_colors, get_gradient_styles
-from excel_parser import ExcelParser
+# Import our custom modules
+from theme import set_custom_theme, apply_custom_css
 from ui_components import (
-    create_header, create_footer, show_balloons, create_info_card,
-    create_metric_card, create_status_indicator, create_progress_card,
-    create_feature_grid, create_system_status, show_celebration_message
+    custom_header, custom_footer, show_balloons, create_info_card, 
+    create_header, create_footer, create_success_message, 
+    create_warning_message, create_error_message, create_metric_card,
+    show_date_parsing_status, create_progress_indicator
 )
-from latex_generator import LaTeXGenerator
+from tender_processor import TenderProcessor
+from excel_parser import ExcelParser
+from bidder_manager import BidderManager
+from report_generator import ReportGenerator
+from document_generator import DocumentGenerator
+from comparative_statement_generator import ComparativeStatementGenerator
+from letter_acceptance_generator import LetterAcceptanceGenerator
+from work_order_generator import WorkOrderGenerator
+from scrutiny_sheet_generator import ScrutinySheetGenerator
+from date_utils import DateUtils
+from pdf_generator import PDFGenerator
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # Page configuration with enhanced metadata
 st.set_page_config(
-    page_title="Enhanced Tender Processing System",
-    page_icon="🏗️",
+    page_title="PWD Electric Division Tender Processing System",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        'Get Help': 'https://docs.streamlit.io/',
-        'Report a bug': None,
-        'About': "Enhanced Tender Processing System v2.0 - Professional UI Migration Complete"
+        'Get Help': 'https://example.com/support',
+        'Report a bug': 'mailto:support@example.com',
+        'About': "PWD Electric Division Tender Processing System v2.0"
     }
 )
 
-# Apply enhanced custom styling
+# Apply enhanced custom styling and theme
+set_custom_theme()
 apply_custom_css()
 
 def main():
-    """Enhanced main application function with professional UI."""
-
-    # Create enhanced header with branding
-    create_header()
+    """
+    Enhanced main application function with professional UI and balloon themes.
+    Aligned with reference PWD Electric Division Tender Processing System.
+    """
+    # Initialize session state
+    initialize_session_state()
     
-    # System status indicator
-    create_system_status()
+    # Create enhanced sidebar
+    create_enhanced_sidebar()
+    
+    # Main content area
+    st.title("PWD Electric Division Tender Processing System")
+    
+    # Show welcome message on first run
+    if 'initialized' not in st.session_state:
+        st.balloons()
+        st.session_state.initialized = True
+        
+    # Main application logic
+    if st.session_state.current_work:
+        display_enhanced_work_info(st.session_state.current_work)
+        
+        # Handle different sections based on current view
+        if st.session_state.current_view == "bidder_management":
+            handle_enhanced_bidder_management()
+        elif st.session_state.current_view == "report_generation":
+            handle_enhanced_report_generation()
+        elif st.session_state.current_view == "document_generation":
+            handle_enhanced_document_generation()
+    else:
+        # Show NIT upload interface if no work is loaded
+        handle_enhanced_nit_upload()
 
-    # Initialize session state with enhanced tracking
+
+def initialize_session_state():
+    """Initialize enhanced session state with progress tracking."""
     if 'current_work' not in st.session_state:
         st.session_state.current_work = None
     if 'bidders' not in st.session_state:
